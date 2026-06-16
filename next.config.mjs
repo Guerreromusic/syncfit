@@ -24,11 +24,14 @@ const securityHeaders = [
       "base-uri 'self'",
       "frame-ancestors 'none'",
       "object-src 'none'",
-      "img-src 'self' data: blob:",
+      // Allow remote cover artwork (Spotify/Songstats CDNs) over https.
+      "img-src 'self' data: blob: https:",
       "font-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "connect-src 'self' https://api.musixmatch.com https://openrouter.ai https://api.songstats.com https://www.lalal.ai",
+      // Allow the embedded Spotify 30s preview player.
+      "frame-src 'self' https://open.spotify.com",
       "form-action 'self'",
     ].join("; "),
   },

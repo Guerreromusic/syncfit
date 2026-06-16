@@ -1,7 +1,7 @@
 import * as React from "react";
 import type { AnalyzeResult, ScoreBreakdown } from "@/lib/types";
 import { SCORE_MODEL } from "@/lib/scoring";
-import { TrophyIcon } from "./icons";
+import { TrophyIcon, WaveIcon } from "./icons";
 
 function scoreColor(score: number): string {
   if (score >= 85) return "text-lime-300";
@@ -56,11 +56,29 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
                   </span>
                 )}
               </div>
-              <p className="mt-2 truncate text-sm font-semibold text-white">
-                {r.track.title}
-              </p>
-              <p className="truncate text-xs text-soft">{r.track.artist}</p>
-              <div className="mt-2 flex items-baseline gap-1.5">
+              <div className="mt-3 flex items-center gap-3">
+                {r.marketSignal.artworkUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={r.marketSignal.artworkUrl}
+                    alt=""
+                    className="h-12 w-12 shrink-0 rounded-lg object-cover ring-1 ring-inset ring-white/10"
+                    loading="lazy"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-purple-600/15 text-purple-200 ring-1 ring-inset ring-white/10">
+                    <WaveIcon className="h-5 w-5" aria-hidden />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">
+                    {r.track.title}
+                  </p>
+                  <p className="truncate text-xs text-soft">{r.track.artist}</p>
+                </div>
+              </div>
+              <div className="mt-3 flex items-baseline gap-1.5">
                 <span
                   className={
                     "text-3xl font-bold tabular-nums " +
@@ -77,6 +95,16 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
                   Safety · {r.analysis.brandSafety.level}
                 </span>
               </div>
+              {r.marketSignal.spotifyTrackId && (
+                <iframe
+                  title={`Preview: ${r.track.title}`}
+                  src={`https://open.spotify.com/embed/track/${r.marketSignal.spotifyTrackId}?theme=0`}
+                  className="mt-3 w-full rounded-lg"
+                  height={80}
+                  loading="lazy"
+                  allow="encrypted-media"
+                />
+              )}
             </div>
           );
         })}

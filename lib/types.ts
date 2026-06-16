@@ -78,6 +78,10 @@ export type MarketSignal = {
   status: "Unknown" | "Emerging" | "Rising" | "Established";
   summary: string;
   confidence: number;
+  /** Cover artwork URL (Songstats `avatar`), when available. */
+  artworkUrl?: string | null;
+  /** Spotify track id (from Songstats links) for an embedded 30s preview. */
+  spotifyTrackId?: string | null;
 };
 
 /** Optional LALAL.AI audio readiness. */

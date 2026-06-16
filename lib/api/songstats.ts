@@ -130,7 +130,31 @@ export async function getMarketSignal(
       top.songstats_track_id ?? top.id ?? undefined;
     const isrc: string | undefined = top.isrc ?? undefined;
 
-    // 2) Pull current stats for the matched track.
+    // Cover artwork comes straight off the search result.
+    let artworkUrl: string | null = top.avatar ?? null;
+
+    // 2) Track info (with links) → artwork fallback + Spotify id for preview.
+    let spotifyTrackId: string | null = null;
+    if (trackId || isrc) {
+      try {
+        const infoJson = await songstatsGet(
+          songstatsUrl("tracks/info", {
+            songstats_track_id: trackId,
+            isrc: trackId ? undefined : isrc,
+            with_links: "true",
+          }),
+        );
+        const ti = infoJson?.track_info ?? {};
+        if (!artworkUrl && ti.avatar) artworkUrl = ti.avatar;
+        const links: any[] = Array.isArray(ti.links) ? ti.links : [];
+        const spotify = links.find((l) => l?.source === "spotify");
+        if (spotify?.external_id) spotifyTrackId = String(spotify.external_id);
+      } catch {
+        // Links/artwork unavailable — fall back to whatever the search gave us.
+      }
+    }
+
+    // 3) Pull current stats for the matched track.
     let streams: number | null = null;
     if (trackId || isrc) {
       try {
@@ -155,6 +179,8 @@ export async function getMarketSignal(
       status,
       summary: `Songstats: "${top.title ?? params.title}" is present in the catalogue${streamsNote}. Market status assessed as ${status}.`,
       confidence,
+      artworkUrl,
+      spotifyTrackId,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "lookup error";
