@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { BriefForm } from "@/components/BriefForm";
 import { StepHeader } from "@/components/StepHeader";
 import { ModelSwitch } from "@/components/ModelSwitch";
 import { RunningState } from "@/components/RunningState";
@@ -10,12 +9,17 @@ import { TrophyIcon } from "@/components/icons";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import type { AnalyzeResult, Brief } from "@/lib/types";
 
-const DEFAULT_BRIEF: Brief = {
-  brief: "",
+// Track Arena compares tracks WITHOUT a user brief. To keep the head-to-head
+// fair, every contender is scored against the same neutral "general sync
+// potential" basis (the SyncFit scoring needs a brief, so we use one fixed
+// internally — identical for all tracks, so the ranking stays apples-to-apples).
+const ARENA_BRIEF: Brief = {
+  brief:
+    "General sync-licensing potential for Latin music — assess this track's overall suitability across film, TV, advertising, and branded content: versatility, brand safety, market appeal, and production readiness. No specific placement.",
   projectType: "Ad",
-  region: "Colombia",
+  region: "LATAM",
   mood: "Energetic",
-  language: "Spanish",
+  language: "Any",
   brandSafety: "Medium",
   licenseTier: "Micro",
 };
@@ -23,7 +27,6 @@ const DEFAULT_BRIEF: Brief = {
 type Entry = { title: string; artist: string };
 
 export default function ArenaPage() {
-  const [brief, setBrief] = React.useState<Brief>(DEFAULT_BRIEF);
   const [model, setModel] = React.useState<string>(DEFAULT_OPENROUTER_MODEL);
   const [tracks, setTracks] = React.useState<Entry[]>([
     { title: "", artist: "" },
@@ -34,9 +37,6 @@ export default function ArenaPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [results, setResults] = React.useState<AnalyzeResult[] | null>(null);
 
-  function patchBrief(patch: Partial<Brief>) {
-    setBrief((b) => ({ ...b, ...patch }));
-  }
   function setTrack(i: number, field: keyof Entry, value: string) {
     setTracks((t) => t.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)));
   }
@@ -48,18 +48,14 @@ export default function ArenaPage() {
   }
 
   const filledCount = tracks.filter((t) => t.title.trim()).length;
-  const canCompare = Boolean(brief.brief.trim()) && filledCount >= 2;
+  const canCompare = filledCount >= 2;
 
   async function runArena() {
     if (running) return;
     setError(null);
-    if (!brief.brief.trim()) {
-      setError("Please enter a creative brief first.");
-      return;
-    }
     const filled = tracks.filter((t) => t.title.trim());
     if (filled.length < 2) {
-      setError("Enter at least 2 tracks to compare.");
+      setError("Enter at least 2 track names to compare.");
       return;
     }
 
@@ -73,7 +69,7 @@ export default function ArenaPage() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                brief,
+                brief: ARENA_BRIEF,
                 model,
                 title: t.title.trim(),
                 artist: t.artist.trim() || undefined,
@@ -104,7 +100,7 @@ export default function ArenaPage() {
           <p className="sf-eyebrow">Track Arena</p>
           <h1 className="mt-1 text-2xl font-bold text-white">Benchmark tracks head-to-head</h1>
           <p className="mt-1 text-sm text-soft">
-            Score up to 3 tracks against the same brief and compare them side by side.
+            Compare the overall sync potential of up to 3 tracks — no brief needed.
           </p>
         </div>
       </header>
@@ -116,7 +112,7 @@ export default function ArenaPage() {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2">
-          {/* Left — brief + contenders */}
+          {/* Left — contenders only (track + artist names) */}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -124,15 +120,11 @@ export default function ArenaPage() {
             }}
             className="space-y-6 p-6 sm:p-8 lg:border-r lg:border-white/5"
           >
-            <BriefForm bare brief={brief} onChange={patchBrief} />
-
-            <div className="sf-hairline" />
-
             <div>
               <StepHeader
-                step={2}
+                step={1}
                 title="Contenders"
-                subtitle="Add 2–3 tracks to put in the arena."
+                subtitle="Enter 2–3 tracks — song title and artist."
               />
               <div className="space-y-3">
                 {tracks.map((t, i) => (
@@ -160,7 +152,7 @@ export default function ArenaPage() {
                       />
                       <input
                         className="sf-input"
-                        placeholder="Artist (optional)"
+                        placeholder="Artist name"
                         value={t.artist}
                         onChange={(e) => setTrack(i, "artist", e.target.value)}
                       />
@@ -199,7 +191,8 @@ export default function ArenaPage() {
                 {running ? "Comparing…" : "Compare Tracks"}
               </button>
               <p className="text-center text-xs text-soft">
-                Each track is scored against the brief, then ranked head-to-head.
+                Each track is scored on overall sync potential, then ranked
+                head-to-head.
               </p>
             </div>
           </form>
@@ -226,8 +219,9 @@ function ArenaEmpty() {
         The matchup appears here
       </h3>
       <p className="mt-2 max-w-sm text-sm text-soft">
-        Add a brief and 2–3 tracks, then hit Compare — SyncFit scores each one and
-        ranks them with a category-by-category breakdown.
+        Enter 2–3 track names, then hit Compare — SyncFit scores each one&apos;s
+        overall sync potential and ranks them with a category-by-category
+        breakdown.
       </p>
     </div>
   );
