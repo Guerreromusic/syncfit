@@ -1,8 +1,17 @@
 import Link from "next/link";
-import { BoltIcon, WaveIcon, ShieldIcon, DocIcon, ArrowRightIcon } from "@/components/icons";
+import {
+  BoltIcon,
+  WaveIcon,
+  ShieldIcon,
+  DocIcon,
+  ArrowRightIcon,
+  ChartIcon,
+  ClockIcon,
+} from "@/components/icons";
 import { DEMO_TRACKS } from "@/lib/demo";
 import { listReports } from "@/lib/storage";
 import { TrendingLatin } from "@/components/TrendingLatin";
+import { StatTile } from "@/components/StatTile";
 
 export const dynamic = "force-dynamic";
 
@@ -48,9 +57,27 @@ export default async function HomePage() {
     Math.round(((total * MINUTES_SAVED_PER_REPORT) / 60) * 10) / 10;
 
   const stats = [
-    { label: "Reports run", value: String(total) },
-    { label: "Avg SyncFit score", value: total ? `${avgScore}` : "—" },
-    { label: "Research hours saved", value: `${hoursSaved}h` },
+    {
+      label: "Reports run",
+      value: String(total),
+      icon: DocIcon,
+      accent: "purple" as const,
+      hint: "Total SyncFit analyses you've saved.",
+    },
+    {
+      label: "Avg SyncFit score",
+      value: total ? `${avgScore}` : "—",
+      icon: ChartIcon,
+      accent: "lime" as const,
+      hint: "Average score (0–100) across all your saved reports.",
+    },
+    {
+      label: "Research hours saved",
+      value: `${hoursSaved}h`,
+      icon: ClockIcon,
+      accent: "purple" as const,
+      hint: `Estimated manual Latin-music research time saved — about ${MINUTES_SAVED_PER_REPORT} min per analysis.`,
+    },
   ];
 
   return (
@@ -93,14 +120,16 @@ export default async function HomePage() {
       </section>
 
       {/* Stat tiles */}
-      <section className="grid grid-cols-3 gap-3 sm:gap-5">
+      <section className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
         {stats.map((s) => (
-          <div key={s.label} className="sf-card sf-card-pad">
-            <p className="text-2xl font-bold tabular-nums text-white sm:text-3xl">
-              {s.value}
-            </p>
-            <p className="mt-1 text-xs text-soft">{s.label}</p>
-          </div>
+          <StatTile
+            key={s.label}
+            value={s.value}
+            label={s.label}
+            hint={s.hint}
+            icon={s.icon}
+            accent={s.accent}
+          />
         ))}
       </section>
 

@@ -88,6 +88,13 @@ export const ChartIcon = (props: IconProps) => (
   </svg>
 );
 
+export const ClockIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
 export const TrophyIcon = (props: IconProps) => (
   <svg {...base(props)}>
     <path d="M8 21h8M12 17v4" />
