@@ -8,13 +8,11 @@ import { TrophyIcon } from "@/components/icons";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import type { AnalyzeResult, Brief } from "@/lib/types";
 
-// Track Arena compares tracks WITHOUT a user brief. To keep the head-to-head
-// fair, every contender is scored against the same neutral "general sync
-// potential" basis (the SyncFit scoring needs a brief, so we use one fixed
-// internally — identical for all tracks, so the ranking stays apples-to-apples).
-const ARENA_BRIEF: Brief = {
-  brief:
-    "General sync-licensing potential for Latin music — assess this track's overall suitability across film, TV, advertising, and branded content: versatility, brand safety, market appeal, and production readiness. No specific placement.",
+// The brief is the factor tracks compete to fit. Track Arena keeps the input
+// simple (free-text only) and fills the rest of the Brief shape with neutral
+// defaults that are identical for every contender — so the head-to-head ranking
+// stays apples-to-apples and is driven by how each track fits the brief text.
+const BRIEF_DEFAULTS: Omit<Brief, "brief"> = {
   projectType: "Ad",
   region: "LATAM",
   mood: "Energetic",
@@ -26,6 +24,7 @@ const ARENA_BRIEF: Brief = {
 type Entry = { title: string; artist: string };
 
 export default function ArenaPage() {
+  const [briefText, setBriefText] = React.useState("");
   const [model, setModel] = React.useState<string>(DEFAULT_OPENROUTER_MODEL);
   const [tracks, setTracks] = React.useState<Entry[]>([
     { title: "", artist: "" },
@@ -47,16 +46,22 @@ export default function ArenaPage() {
   }
 
   const filledCount = tracks.filter((t) => t.title.trim()).length;
-  const canCompare = filledCount >= 2;
+  const canCompare = Boolean(briefText.trim()) && filledCount >= 2;
 
   async function runArena() {
     if (running) return;
     setError(null);
+    if (!briefText.trim()) {
+      setError("Enter a brief — it's what the tracks compete to fit.");
+      return;
+    }
     const filled = tracks.filter((t) => t.title.trim());
     if (filled.length < 2) {
       setError("Enter at least 2 track names to compare.");
       return;
     }
+
+    const brief: Brief = { ...BRIEF_DEFAULTS, brief: briefText.trim() };
 
     setRunning(true);
     setResults(null);
@@ -68,7 +73,7 @@ export default function ArenaPage() {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                brief: ARENA_BRIEF,
+                brief,
                 model,
                 title: t.title.trim(),
                 artist: t.artist.trim() || undefined,
@@ -99,7 +104,7 @@ export default function ArenaPage() {
           <p className="sf-eyebrow">Track Arena</p>
           <h1 className="mt-1 text-2xl font-bold text-white">Benchmark tracks head-to-head</h1>
           <p className="mt-1 text-sm text-soft">
-            Compare the overall sync potential of up to 3 tracks — no brief needed.
+            Set a brief, then see which of up to 3 tracks fits it best.
           </p>
         </div>
       </header>
@@ -119,6 +124,26 @@ export default function ArenaPage() {
             }}
             className="space-y-6 p-6 sm:p-8 lg:border-r lg:border-white/5"
           >
+            {/* The brief — the factor the tracks compete to fit */}
+            <div>
+              <div className="mb-2">
+                <h2 className="text-base font-semibold leading-tight text-white">
+                  Brief
+                </h2>
+                <p className="text-xs text-soft">
+                  What are the tracks competing to fit?
+                </p>
+              </div>
+              <textarea
+                className="sf-input min-h-[88px] resize-y"
+                placeholder="e.g. Energetic Colombian football brand ad — celebratory, stadium-crowd feel, family-friendly."
+                value={briefText}
+                onChange={(e) => setBriefText(e.target.value)}
+              />
+            </div>
+
+            <div className="sf-hairline" />
+
             <div>
               <div className="mb-4">
                 <h2 className="text-base font-semibold leading-tight text-white">
@@ -193,8 +218,7 @@ export default function ArenaPage() {
                 {running ? "Comparing…" : "Compare Tracks"}
               </button>
               <p className="text-center text-xs text-soft">
-                Each track is scored on overall sync potential, then ranked
-                head-to-head.
+                Each track is scored against your brief, then ranked head-to-head.
               </p>
             </div>
           </form>
@@ -221,8 +245,8 @@ function ArenaEmpty() {
         The matchup appears here
       </h3>
       <p className="mt-2 max-w-sm text-sm text-soft">
-        Enter 2–3 track names, then hit Compare — SyncFit scores each one&apos;s
-        overall sync potential and ranks them with a category-by-category
+        Set a brief and enter 2–3 tracks, then hit Compare — SyncFit scores each
+        one against your brief and ranks them with a category-by-category
         breakdown.
       </p>
     </div>
