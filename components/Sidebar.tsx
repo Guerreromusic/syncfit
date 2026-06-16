@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark } from "./Logo";
+import { LogoImage } from "./Logo";
 import { NAV, isActive } from "./navItems";
 
 export function Sidebar() {
@@ -10,11 +10,10 @@ export function Sidebar() {
 
   return (
     <aside className="sticky top-0 z-30 hidden h-screen w-64 shrink-0 flex-col border-r border-white/[0.06] bg-white/[0.015] px-3 py-5 lg:flex">
-      <Link href="/" className="mb-5 flex items-center gap-3 px-2">
-        <LogoMark />
-        <span className="leading-tight">
-          <span className="block text-sm font-semibold text-white">SyncFit</span>
-          <span className="block text-[10px] leading-tight text-soft">by Synclat</span>
+      <Link href="/" className="mb-5 block px-2">
+        <LogoImage className="h-7" />
+        <span className="mt-1.5 block text-[10px] leading-tight text-soft">
+          by Synclat
         </span>
       </Link>
 

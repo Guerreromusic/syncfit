@@ -29,12 +29,17 @@ export function LogoMark({ className }: { className?: string }) {
   );
 }
 
-/** Full lockup: mark + "SyncFit" wordmark. */
-export function LogoLockup({ className }: { className?: string }) {
+/**
+ * The real brand logo (uploaded, trimmed to a transparent-background PNG).
+ * Used for the app header/sidebar lockup.
+ */
+export function LogoImage({ className }: { className?: string }) {
   return (
-    <span className={"inline-flex items-center gap-2.5 " + (className || "")}>
-      <LogoMark className="h-7 w-11" />
-      <span className="text-lg font-bold tracking-tight text-white">SyncFit</span>
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src="/syncfit-logo.png"
+      alt="SyncFit by Synclat"
+      className={"w-auto " + (className || "h-8")}
+    />
   );
 }

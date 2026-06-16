@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogoMark } from "./Logo";
+import { LogoImage } from "./Logo";
 import { NAV, isActive } from "./navItems";
 
-export function Topbar({ appName }: { appName: string }) {
+export function Topbar() {
   const pathname = usePathname();
 
   return (
@@ -13,9 +13,8 @@ export function Topbar({ appName }: { appName: string }) {
       {/* Top row */}
       <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-12">
         {/* Brand — mobile only; the sidebar carries it on desktop */}
-        <Link href="/" className="flex items-center gap-2.5 lg:hidden">
-          <LogoMark />
-          <span className="text-sm font-semibold text-white">{appName}</span>
+        <Link href="/" className="flex items-center lg:hidden">
+          <LogoImage className="h-6" />
         </Link>
 
         {/* Quiet right-aligned context chip (desktop) */}
