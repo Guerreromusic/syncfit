@@ -14,7 +14,7 @@ export function Sidebar() {
         <LogoMark />
         <span className="leading-tight">
           <span className="block text-sm font-semibold text-white">SyncFit</span>
-          <span className="block text-xs text-soft">by Synclat</span>
+          <span className="block text-[10px] leading-tight text-soft">by Synclat</span>
         </span>
       </Link>
 
