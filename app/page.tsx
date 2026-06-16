@@ -2,8 +2,12 @@ import Link from "next/link";
 import { BoltIcon, WaveIcon, ShieldIcon, DocIcon, ArrowRightIcon } from "@/components/icons";
 import { DEMO_TRACKS } from "@/lib/demo";
 import { listReports } from "@/lib/storage";
+import { TrendingLatin } from "@/components/TrendingLatin";
 
 export const dynamic = "force-dynamic";
+
+// Estimated minutes of manual research saved per SyncFit analysis.
+const MINUTES_SAVED_PER_REPORT = 25;
 
 function scoreColor(score: number): string {
   if (score >= 85) return "text-lime-300";
@@ -34,7 +38,20 @@ const FEATURES = [
 ];
 
 export default async function HomePage() {
-  const recent = (await listReports()).filter((r) => !r.archived).slice(0, 8);
+  const reports = await listReports();
+  const recent = reports.filter((r) => !r.archived).slice(0, 8);
+  const total = reports.length;
+  const avgScore = total
+    ? Math.round(reports.reduce((s, r) => s + r.analysis.syncFitScore, 0) / total)
+    : 0;
+  const hoursSaved =
+    Math.round(((total * MINUTES_SAVED_PER_REPORT) / 60) * 10) / 10;
+
+  const stats = [
+    { label: "Reports run", value: String(total) },
+    { label: "Avg SyncFit score", value: total ? `${avgScore}` : "—" },
+    { label: "Research hours saved", value: `${hoursSaved}h` },
+  ];
 
   return (
     <div className="space-y-8">
@@ -74,6 +91,21 @@ export default async function HomePage() {
         <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-purple-600/12 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-20 right-20 h-56 w-56 rounded-full bg-lime-500/[0.06] blur-3xl" />
       </section>
+
+      {/* Stat tiles */}
+      <section className="grid grid-cols-3 gap-3 sm:gap-5">
+        {stats.map((s) => (
+          <div key={s.label} className="sf-card sf-card-pad">
+            <p className="text-2xl font-bold tabular-nums text-white sm:text-3xl">
+              {s.value}
+            </p>
+            <p className="mt-1 text-xs text-soft">{s.label}</p>
+          </div>
+        ))}
+      </section>
+
+      {/* Trending Latin — live via Songstats */}
+      <TrendingLatin />
 
       {/* Feature cards */}
       <section className="grid grid-cols-1 gap-5 md:grid-cols-3">

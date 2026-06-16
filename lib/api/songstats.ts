@@ -15,7 +15,7 @@
 // =============================================================================
 
 import { env, isConfigured } from "../env";
-import type { MarketSignal } from "../types";
+import type { MarketSignal, TrendingTrack } from "../types";
 
 const SONGSTATS_BASE = "https://api.songstats.com/enterprise/v1";
 
@@ -190,4 +190,74 @@ export async function getMarketSignal(
       confidence: 0,
     };
   }
+}
+
+// =============================================================================
+// Trending Latin — curated current hits enriched with live Songstats data
+// (real artwork + stream counts). Songstats has no global chart endpoint, so
+// the SELECTION is curated; the numbers/artwork are live. Cached server-side.
+// =============================================================================
+
+const TRENDING_SEED: { title: string; artist: string }[] = [
+  { title: "Tusa", artist: "Karol G" },
+  { title: "Me Porto Bonito", artist: "Bad Bunny" },
+  { title: "Provenza", artist: "Karol G" },
+  { title: "Hawái", artist: "Maluma" },
+  { title: "Despacito", artist: "Luis Fonsi" },
+  { title: "Pepas", artist: "Farruko" },
+];
+
+let trendingCache: { data: TrendingTrack[]; ts: number } | null = null;
+const TRENDING_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+
+export async function getTrendingLatin(): Promise<TrendingTrack[]> {
+  if (!isConfigured.songstats()) return [];
+  if (trendingCache && Date.now() - trendingCache.ts < TRENDING_TTL_MS) {
+    return trendingCache.data;
+  }
+
+  const results = await Promise.all(
+    TRENDING_SEED.map(async (s): Promise<TrendingTrack | null> => {
+      try {
+        const searchJson = await songstatsGet(
+          songstatsUrl(SONGSTATS_ENDPOINTS.search, {
+            q: `${s.title} ${s.artist}`,
+            limit: 1,
+          }),
+        );
+        const top = searchJson?.results?.[0] ?? null;
+        if (!top) return null;
+        const trackId: string | undefined = top.songstats_track_id;
+        let streams: number | null = null;
+        if (trackId) {
+          try {
+            const statsJson = await songstatsGet(
+              songstatsUrl(SONGSTATS_ENDPOINTS.stats, {
+                songstats_track_id: trackId,
+              }),
+            );
+            streams = extractStreams(statsJson);
+          } catch {
+            /* stats optional */
+          }
+        }
+        return {
+          title: top.title ?? s.title,
+          artist: s.artist,
+          artworkUrl: top.avatar ?? null,
+          streams,
+          status: statusFromStreams(streams).status,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  const data = results
+    .filter((t): t is TrendingTrack => Boolean(t))
+    .sort((a, b) => (b.streams ?? 0) - (a.streams ?? 0));
+
+  trendingCache = { data, ts: Date.now() };
+  return data;
 }

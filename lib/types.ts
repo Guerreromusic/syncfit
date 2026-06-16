@@ -155,6 +155,15 @@ export type DiscoverResult = {
   usedDemoData: { openrouter: boolean };
 };
 
+/** A trending Latin track card (curated seed enriched with live Songstats data). */
+export type TrendingTrack = {
+  title: string;
+  artist: string;
+  artworkUrl: string | null;
+  streams: number | null;
+  status: MarketSignal["status"];
+};
+
 /** Whether each provider is wired up. Shown in the API Status panel. */
 export type ApiKey = "musixmatch" | "openrouter" | "songstats" | "lalal" | "cyanite";
 
