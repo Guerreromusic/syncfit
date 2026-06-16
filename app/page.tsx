@@ -82,41 +82,33 @@ export default async function HomePage() {
 
   return (
     <div className="space-y-8">
-      {/* Hero */}
+      {/* Hero — slim banner */}
       <section className="sf-card relative overflow-hidden">
-        <div className="relative z-10 px-6 py-10 sm:px-10 sm:py-14">
-          <span className="sf-pill mb-5 text-purple-100">
-            <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
-            Musixmatch Musicathon · MVP
-          </span>
-          <h1 className="max-w-3xl text-4xl font-bold leading-tight tracking-tight text-white sm:text-5xl">
-            SyncFit by Synclat
-          </h1>
-          <p className="mt-3 max-w-2xl text-lg text-soft">
-            Score, explain, and pitch Latin tracks for global sync.
-          </p>
-          <p className="mt-4 max-w-2xl text-sm leading-relaxed text-soft/90">
-            SyncFit helps music supervisors instantly understand whether a Latin
-            track fits a creative brief for film, TV, ads, games, and branded
-            content.
-          </p>
-          <div className="mt-7 flex flex-wrap items-center gap-3">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 px-6 py-5 sm:px-8">
+          <div className="min-w-0">
+            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-soft">
+              <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
+              Musixmatch Musicathon · MVP
+            </span>
+            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+              SyncFit <span className="text-soft">by Synclat</span>
+            </h1>
+            <p className="mt-1 text-sm text-soft">
+              Score, explain, and pitch Latin tracks for global sync.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-3">
             <Link href="/analyzer" className="sf-btn-primary">
-              <BoltIcon className="h-4 w-4" />
+              <BoltIcon className="h-4 w-4" aria-hidden />
               Run SyncFit
             </Link>
             <Link href="/report" className="sf-btn-secondary">
-              View saved reports
-              <ArrowRightIcon className="h-4 w-4" />
+              View reports
+              <ArrowRightIcon className="h-4 w-4" aria-hidden />
             </Link>
           </div>
-          <p className="mt-6 text-xs text-soft">
-            Built for Musicathon using Musixmatch APIs.
-          </p>
         </div>
-        {/* subtle gradient orb */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-purple-600/12 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 right-20 h-56 w-56 rounded-full bg-lime-500/[0.06] blur-3xl" />
+        <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-purple-600/12 blur-3xl" />
       </section>
 
       {/* Stat tiles */}
@@ -135,19 +127,6 @@ export default async function HomePage() {
 
       {/* Trending Latin — live via Songstats */}
       <TrendingLatin />
-
-      {/* Feature cards */}
-      <section className="grid grid-cols-1 gap-5 md:grid-cols-3">
-        {FEATURES.map(({ icon: Icon, title, body }) => (
-          <div key={title} className="sf-card sf-card-pad animate-fade-up">
-            <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-purple-600/20 ring-1 ring-inset ring-purple-500/30">
-              <Icon className="h-5 w-5 text-lime-400" />
-            </span>
-            <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-soft">{body}</p>
-          </div>
-        ))}
-      </section>
 
       {/* Recent reports — quick access from the dashboard */}
       {recent.length > 0 && (
@@ -201,6 +180,22 @@ export default async function HomePage() {
           </Link>
         </section>
       )}
+
+      {/* What SyncFit does */}
+      <section>
+        <p className="sf-eyebrow mb-3">What SyncFit does</p>
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
+          {FEATURES.map(({ icon: Icon, title, body }) => (
+            <div key={title} className="sf-card sf-card-pad">
+              <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-purple-600/20 ring-1 ring-inset ring-purple-500/30">
+                <Icon className="h-5 w-5 text-lime-400" />
+              </span>
+              <h3 className="mt-4 text-base font-semibold text-white">{title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-soft">{body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Demo tracks */}
       <section>
