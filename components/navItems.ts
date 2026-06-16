@@ -11,7 +11,7 @@ import {
 
 export const NAV = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
-  { href: "/analyzer", label: "SyncFit Analyzer", icon: SlidersIcon },
+  { href: "/analyzer", label: "Discover", icon: SlidersIcon },
   { href: "/arena", label: "Track Arena", icon: TrophyIcon },
   { href: "/report", label: "Reports", icon: DocIcon },
   { href: "/info", label: "How it works", icon: InfoIcon },

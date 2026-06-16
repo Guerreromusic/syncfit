@@ -127,10 +127,10 @@ export default function AnalyzerPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <p className="sf-eyebrow">Analyzer</p>
-          <h1 className="mt-1 text-2xl font-bold text-white">SyncFit Analyzer</h1>
+          <p className="sf-eyebrow">Discover</p>
+          <h1 className="mt-1 text-2xl font-bold text-white">Discover the right track</h1>
           <p className="mt-1 text-sm text-soft">
-            Enter a brief, pick a track, and generate a sync-fit score.
+            Enter a brief, then score a track — or find the 10 best-fitting matches.
           </p>
         </div>
       </header>

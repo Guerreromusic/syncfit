@@ -33,8 +33,8 @@ export default async function ReportsPage() {
           </span>
           <h3 className="mt-4 text-base font-semibold text-white">No reports yet</h3>
           <p className="mt-2 max-w-sm text-sm text-soft">
-            Run an analysis in the SyncFit Analyzer and it will be saved here as a
-            shareable pitch card.
+            Run an analysis in Discover and it will be saved here as a shareable
+            pitch card.
           </p>
           <Link href="/analyzer" className="sf-btn-secondary mt-5">
             Open Analyzer
