@@ -1,25 +1,30 @@
 import * as React from "react";
 
 /**
- * SyncFit mark — a purple→lime equalizer wave (matches the brand logo).
- * Bars-only, transparent background, so it sits cleanly anywhere.
+ * SyncFit mark — symmetric purple→lime equalizer wave, matching the brand logo:
+ * end dots → rising bars → a purple+lime tall pair at the centre → falling bars
+ * → end dots.
  */
 export function LogoMark({ className }: { className?: string }) {
   return (
     <svg
-      className={"shrink-0 " + (className || "h-8 w-10")}
-      viewBox="0 0 40 32"
+      className={"shrink-0 " + (className || "h-7 w-11")}
+      viewBox="0 0 48 30"
       fill="none"
       role="img"
       aria-label="SyncFit"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <rect x="2" y="10.5" width="4" height="11" rx="2" fill="#A983FF" />
-      <rect x="8.4" y="6.5" width="4" height="19" rx="2" fill="#8B5CF6" />
-      <rect x="14.8" y="1.5" width="4" height="29" rx="2" fill="#7C3AED" />
-      <rect x="21.2" y="1.5" width="4" height="29" rx="2" fill="#A3E635" />
-      <rect x="27.6" y="6.5" width="4" height="19" rx="2" fill="#84CC16" />
-      <rect x="34" y="10.5" width="4" height="11" rx="2" fill="#BEF264" />
+      {/* purple side */}
+      <rect x="2.1" y="12" width="3.2" height="6" rx="1.6" fill="#A855F7" />
+      <rect x="7.9" y="8.5" width="3.2" height="13" rx="1.6" fill="#A855F7" />
+      <rect x="13.7" y="5" width="3.2" height="20" rx="1.6" fill="#A855F7" />
+      <rect x="19.5" y="1" width="3.2" height="28" rx="1.6" fill="#9333EA" />
+      {/* lime side */}
+      <rect x="25.3" y="1" width="3.2" height="28" rx="1.6" fill="#93C932" />
+      <rect x="31.1" y="5" width="3.2" height="20" rx="1.6" fill="#A3E635" />
+      <rect x="36.9" y="8.5" width="3.2" height="13" rx="1.6" fill="#A3E635" />
+      <rect x="42.7" y="12" width="3.2" height="6" rx="1.6" fill="#A3E635" />
     </svg>
   );
 }
@@ -28,7 +33,7 @@ export function LogoMark({ className }: { className?: string }) {
 export function LogoLockup({ className }: { className?: string }) {
   return (
     <span className={"inline-flex items-center gap-2.5 " + (className || "")}>
-      <LogoMark className="h-7 w-9" />
+      <LogoMark className="h-7 w-11" />
       <span className="text-lg font-bold tracking-tight text-white">SyncFit</span>
     </span>
   );
