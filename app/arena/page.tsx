@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { StepHeader } from "@/components/StepHeader";
 import { ModelSwitch } from "@/components/ModelSwitch";
 import { RunningState } from "@/components/RunningState";
 import { ArenaCompare } from "@/components/ArenaCompare";
@@ -121,11 +120,14 @@ export default function ArenaPage() {
             className="space-y-6 p-6 sm:p-8 lg:border-r lg:border-white/5"
           >
             <div>
-              <StepHeader
-                step={1}
-                title="Contenders"
-                subtitle="Enter 2–3 tracks — song title and artist."
-              />
+              <div className="mb-4">
+                <h2 className="text-base font-semibold leading-tight text-white">
+                  Contenders
+                </h2>
+                <p className="text-xs text-soft">
+                  Enter 2–3 tracks — song title and artist.
+                </p>
+              </div>
               <div className="space-y-3">
                 {tracks.map((t, i) => (
                   <div key={i} className="rounded-xl border border-white/[0.07] p-3">
