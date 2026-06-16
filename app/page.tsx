@@ -58,9 +58,9 @@ export default function HomePage() {
             Built for Musicathon using Musixmatch APIs.
           </p>
         </div>
-        {/* decorative gradient orb */}
-        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-purple-600/30 blur-3xl" />
-        <div className="pointer-events-none absolute -bottom-20 right-20 h-56 w-56 rounded-full bg-lime-500/10 blur-3xl" />
+        {/* subtle gradient orb */}
+        <div className="pointer-events-none absolute -right-24 -top-24 h-72 w-72 rounded-full bg-purple-600/12 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-20 right-20 h-56 w-56 rounded-full bg-lime-500/[0.06] blur-3xl" />
       </section>
 
       {/* Feature cards */}

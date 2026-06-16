@@ -147,17 +147,6 @@ export default function AnalyzerPage() {
 
       {/* Single liquid-glass card */}
       <div className="relative">
-        {/* Decorative color blobs behind the glass so it has something to
-            refract — the "liquid" depth. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute -inset-8 -z-10 overflow-hidden"
-        >
-          <div className="absolute -left-12 top-0 h-64 w-64 rounded-full bg-purple-600/30 blur-3xl" />
-          <div className="absolute right-0 top-24 h-72 w-72 rounded-full bg-lime-500/15 blur-3xl" />
-          <div className="absolute bottom-0 left-1/3 h-64 w-64 rounded-full bg-purple-400/20 blur-3xl" />
-        </div>
-
         <div className="sf-glass">
           {/* Card header — AI Model Switch lives top-right */}
           <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-6 py-4 sm:px-8">

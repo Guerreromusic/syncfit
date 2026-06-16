@@ -62,8 +62,9 @@ const config: Config = {
         lime: "0 8px 24px -8px rgba(190,242,100,0.4)",
       },
       backgroundImage: {
+        // Very subtle, flat canvas tint (Claude-like calm) — barely-there glow.
         "purple-glow":
-          "radial-gradient(1200px 600px at 20% -10%, rgba(124,58,237,0.18), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(139,92,246,0.12), transparent 55%)",
+          "radial-gradient(1100px 520px at 18% -12%, rgba(124,58,237,0.06), transparent 60%)",
       },
       keyframes: {
         "fade-up": {
