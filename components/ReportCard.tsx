@@ -5,7 +5,7 @@ import { ScoreBreakdown } from "./ScoreBreakdown";
 import { BrandSafetyCard } from "./BrandSafetyCard";
 import { PitchSummaryCard } from "./PitchSummaryCard";
 import { SuggestedAlternatives } from "./SuggestedAlternatives";
-import { LogoMark } from "./Logo";
+import { TrackCover, StreamsBadge } from "./TrackCover";
 import { DemoBadge } from "./DemoBadge";
 
 function MetaItem({ label, value }: { label: string; value: React.ReactNode }) {
@@ -35,14 +35,20 @@ export function ReportCard({ report }: { report: SavedReport }) {
       {/* Header / export banner */}
       <div className="sf-card sf-card-pad">
         <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <LogoMark />
-            <div>
+          <div className="flex min-w-0 items-center gap-4">
+            <TrackCover url={marketSignal.artworkUrl} className="h-16 w-16" />
+            <div className="min-w-0">
               <p className="sf-eyebrow">SyncFit Pitch Card</p>
-              <h1 className="mt-0.5 text-2xl font-bold text-white">
+              <h1 className="mt-0.5 truncate text-2xl font-bold text-white">
                 {track.title}
               </h1>
-              <p className="text-sm text-soft">{track.artist}</p>
+              <p className="truncate text-sm text-soft">{track.artist}</p>
+              <div className="mt-1">
+                <StreamsBadge
+                  streams={marketSignal.streams}
+                  status={marketSignal.status !== "Unknown" ? marketSignal.status : undefined}
+                />
+              </div>
             </div>
           </div>
           <div className="text-right">

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SavedReport } from "@/lib/types";
 import { ArchiveButton } from "./ArchiveButton";
+import { AddToArenaButton } from "./AddToArenaButton";
 
 function scoreColor(score: number): string {
   if (score >= 85) return "text-lime-300";
@@ -62,7 +63,14 @@ export function ReportListItem({ report: r }: { report: SavedReport }) {
             timeStyle: "short",
           })}
         </p>
-        <ArchiveButton id={r.id} archived={Boolean(r.archived)} />
+        <div className="flex items-center gap-1.5">
+          <AddToArenaButton
+            brief={r.brief.brief}
+            title={r.track.title}
+            artist={r.track.artist}
+          />
+          <ArchiveButton id={r.id} archived={Boolean(r.archived)} />
+        </div>
       </div>
     </div>
   );

@@ -181,6 +181,7 @@ export async function getMarketSignal(
       confidence,
       artworkUrl,
       spotifyTrackId,
+      streams,
     };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "lookup error";

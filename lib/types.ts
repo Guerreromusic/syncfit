@@ -82,6 +82,8 @@ export type MarketSignal = {
   artworkUrl?: string | null;
   /** Spotify track id (from Songstats links) for an embedded 30s preview. */
   spotifyTrackId?: string | null;
+  /** Total streams (Songstats), when available — shown next to the artwork. */
+  streams?: number | null;
 };
 
 /** Optional LALAL.AI audio readiness. */

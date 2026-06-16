@@ -293,3 +293,79 @@ export function normalizeRankedTracks(raw: any): RankedTrack[] {
   tracks.sort((a, b) => b.syncFitScore - a.syncFitScore);
   return tracks.slice(0, 10);
 }
+
+// =============================================================================
+// Lyric translation + brief-keyword highlighting (used on the full report).
+// Operates ONLY on a SHORT lyric snippet (never full lyrics); nothing stored.
+// =============================================================================
+
+export type LyricTranslation = {
+  sourceLang: string;
+  translation: string;
+  keywords: string[];
+};
+
+export async function runLyricTranslation(input: {
+  snippet: string;
+  brief: string;
+  target?: string;
+  model?: string;
+}): Promise<LyricTranslation> {
+  if (!isConfigured.openrouter()) throw new OpenRouterNotConfiguredError();
+
+  const target = input.target || "English";
+  const model = isAllowedModel(input.model) ? input.model : env.openrouterModel();
+
+  const system = `You translate SHORT song-lyric snippets for music supervisors. You receive a brief snippet (NOT full lyrics) and a creative brief. Return ONLY a single JSON object:
+{
+  "sourceLang": string,        // language of the snippet, e.g. "Spanish"
+  "translation": string,       // faithful, concise ${target} translation of the snippet
+  "keywords": string[]         // up to 6 words/short phrases that appear in the snippet OR its translation AND align with the brief's mood/theme
+}
+No commentary, no markdown, no extra fields. Do not expand beyond the snippet.`;
+
+  const user = `SNIPPET (short context, not full lyrics):
+"""${input.snippet}"""
+
+CREATIVE BRIEF:
+${input.brief}
+
+Translate the snippet to ${target} and list the brief-matching keywords.`;
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${env.openrouter()}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://synclat.com",
+      "X-Title": "SyncFit by Synclat",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0.2,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await safeText(res);
+    throw new Error(`OpenRouter HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+  }
+  const json = await res.json();
+  const content: string | undefined = json?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned an empty response");
+
+  const raw: any = parseAnalysisJson(content);
+  return {
+    sourceLang: typeof raw?.sourceLang === "string" ? raw.sourceLang : "Unknown",
+    translation: typeof raw?.translation === "string" ? raw.translation : "",
+    keywords: Array.isArray(raw?.keywords)
+      ? raw.keywords.filter((k: unknown) => typeof k === "string").slice(0, 6)
+      : [],
+  };
+}

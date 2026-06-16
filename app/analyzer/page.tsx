@@ -13,6 +13,7 @@ import { SuggestedAlternatives } from "@/components/SuggestedAlternatives";
 import { SignalsCard } from "@/components/ReportCard";
 import { ModelSwitch } from "@/components/ModelSwitch";
 import { DemoBadge } from "@/components/DemoBadge";
+import { TrackCover, StreamsBadge } from "@/components/TrackCover";
 import { TrackFitResults } from "@/components/TrackFitResults";
 import { ArrowRightIcon, SparkIcon, BoltIcon, SearchIcon } from "@/components/icons";
 import {
@@ -276,10 +277,21 @@ function ResultsHeader({
   return (
     <div className="sf-glass-soft p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <p className="sf-eyebrow">Result</p>
-          <h2 className="mt-1 text-xl font-bold text-white">{track.title}</h2>
-          <p className="text-sm text-soft">{track.artist}</p>
+        <div className="flex min-w-0 items-center gap-3">
+          <TrackCover url={result.marketSignal.artworkUrl} className="h-14 w-14" />
+          <div className="min-w-0">
+            <p className="sf-eyebrow">Result</p>
+            <h2 className="mt-0.5 truncate text-xl font-bold text-white">
+              {track.title}
+            </h2>
+            <p className="truncate text-sm text-soft">{track.artist}</p>
+            <div className="mt-0.5">
+              <StreamsBadge
+                streams={result.marketSignal.streams}
+                status={result.marketSignal.status !== "Unknown" ? result.marketSignal.status : undefined}
+              />
+            </div>
+          </div>
         </div>
         {savedId && (
           <Link href={`/report/${savedId}`} className="sf-btn-secondary">

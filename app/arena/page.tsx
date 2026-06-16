@@ -34,6 +34,31 @@ export default function ArenaPage() {
   const [running, setRunning] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [results, setResults] = React.useState<AnalyzeResult[] | null>(null);
+  const [imported, setImported] = React.useState(false);
+
+  // Import tracks (+brief) queued from Reports via "Add to Arena". Consume once.
+  React.useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem("syncfit:arena:tracks");
+      const list = raw ? JSON.parse(raw) : [];
+      if (Array.isArray(list) && list.length > 0) {
+        const picked = list
+          .slice(0, 3)
+          .map((x: { title?: string; artist?: string }) => ({
+            title: String(x.title || ""),
+            artist: String(x.artist || ""),
+          }));
+        setTracks(picked.length >= 2 ? picked : [...picked, { title: "", artist: "" }]);
+        const b = sessionStorage.getItem("syncfit:arena:brief");
+        if (b) setBriefText(b);
+        setImported(true);
+      }
+    } catch {
+      /* ignore */
+    }
+    sessionStorage.removeItem("syncfit:arena:tracks");
+    sessionStorage.removeItem("syncfit:arena:brief");
+  }, []);
 
   function setTrack(i: number, field: keyof Entry, value: string) {
     setTracks((t) => t.map((e, idx) => (idx === i ? { ...e, [field]: value } : e)));
@@ -145,13 +170,20 @@ export default function ArenaPage() {
             <div className="sf-hairline" />
 
             <div>
-              <div className="mb-4">
-                <h2 className="text-base font-semibold leading-tight text-white">
-                  Contenders
-                </h2>
-                <p className="text-xs text-soft">
-                  Enter 2–3 tracks — song title and artist.
-                </p>
+              <div className="mb-4 flex items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-base font-semibold leading-tight text-white">
+                    Contenders
+                  </h2>
+                  <p className="text-xs text-soft">
+                    Enter 2–3 tracks — song title and artist.
+                  </p>
+                </div>
+                {imported && (
+                  <span className="shrink-0 rounded-full bg-lime-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-lime-300 ring-1 ring-inset ring-lime-500/25">
+                    Imported from Reports
+                  </span>
+                )}
               </div>
               <div className="space-y-3">
                 {tracks.map((t, i) => (
