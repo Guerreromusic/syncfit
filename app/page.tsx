@@ -1,6 +1,16 @@
 import Link from "next/link";
 import { BoltIcon, WaveIcon, ShieldIcon, DocIcon, ArrowRightIcon } from "@/components/icons";
 import { DEMO_TRACKS } from "@/lib/demo";
+import { listReports } from "@/lib/storage";
+
+export const dynamic = "force-dynamic";
+
+function scoreColor(score: number): string {
+  if (score >= 85) return "text-lime-300";
+  if (score >= 70) return "text-lime-400";
+  if (score >= 50) return "text-purple-200";
+  return "text-red-300";
+}
 
 const FEATURES = [
   {
@@ -23,7 +33,9 @@ const FEATURES = [
   },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const recent = (await listReports()).filter((r) => !r.archived).slice(0, 8);
+
   return (
     <div className="space-y-8">
       {/* Hero */}
@@ -75,6 +87,59 @@ export default function HomePage() {
           </div>
         ))}
       </section>
+
+      {/* Recent reports — quick access from the dashboard */}
+      {recent.length > 0 && (
+        <section>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <div>
+              <p className="sf-eyebrow">Recent reports</p>
+              <h3 className="mt-1 text-sm font-semibold text-white">
+                Your latest SyncFit analyses
+              </h3>
+            </div>
+            <Link href="/report" className="sf-btn-secondary hidden sm:inline-flex">
+              View all
+              <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          </div>
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {recent.map((r) => (
+              <li key={r.id}>
+                <Link
+                  href={`/report/${r.id}`}
+                  className="sf-card block p-4 transition hover:border-purple-400/50"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="min-w-0 truncate text-sm font-semibold text-white">
+                      {r.track.title}
+                    </p>
+                    <span
+                      className={
+                        "shrink-0 text-lg font-bold tabular-nums " +
+                        scoreColor(r.analysis.syncFitScore)
+                      }
+                    >
+                      {r.analysis.syncFitScore}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-soft">{r.track.artist}</p>
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    <span className="sf-pill text-[10px]">{r.brief.projectType}</span>
+                    <span className="sf-pill text-[10px]">{r.brief.region}</span>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          <Link
+            href="/report"
+            className="mt-3 inline-flex text-xs font-medium text-soft transition hover:text-white sm:hidden"
+          >
+            View all reports →
+          </Link>
+        </section>
+      )}
 
       {/* Demo tracks */}
       <section>
