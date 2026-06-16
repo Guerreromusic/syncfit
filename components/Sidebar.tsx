@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoMark } from "./Logo";
 import { NAV, isActive } from "./navItems";
-import { BoltIcon } from "./icons";
 
 export function Sidebar() {
   const pathname = usePathname();
@@ -17,15 +16,6 @@ export function Sidebar() {
           <span className="block text-sm font-semibold text-white">SyncFit</span>
           <span className="block text-xs text-soft">by Synclat</span>
         </span>
-      </Link>
-
-      {/* Primary action — Claude's "New chat" analog */}
-      <Link
-        href="/analyzer"
-        className="mb-4 flex items-center justify-center gap-2 rounded-xl bg-lime-400 px-3 py-2.5 text-sm font-semibold text-ink-950 transition hover:bg-lime-300"
-      >
-        <BoltIcon className="h-4 w-4" aria-hidden />
-        Run SyncFit
       </Link>
 
       <nav className="flex flex-col gap-0.5" aria-label="Primary">
