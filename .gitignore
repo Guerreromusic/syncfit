@@ -1,0 +1,41 @@
+# --- SyncFit by Synclat / Next.js ---
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# ----------------------------------------------------------------------------
+# COMPLIANCE / SECURITY — DO NOT COMMIT
+# ----------------------------------------------------------------------------
+# Never commit API keys or local env files.
+.env
+.env*.local
+.env.local
+
+# Never commit locally generated demo reports. These are user/demo metadata and
+# Synclat-generated summaries only — but we still keep them out of the repo so no
+# accidental API responses or lyric-derived content is ever pushed.
+/data/reports.json
+/data/*.json
+!/data/.gitkeep
