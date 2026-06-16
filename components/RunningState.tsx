@@ -25,8 +25,25 @@ const STEPS_DISCOVER = [
   "Polishing the shortlist…",
 ];
 
-export function RunningState({ mode = "single" }: { mode?: "single" | "discover" }) {
-  const STEPS = mode === "discover" ? STEPS_DISCOVER : STEPS_SINGLE;
+const STEPS_ARENA = [
+  "Looking up your tracks on Musixmatch…",
+  "Scoring each against your brief…",
+  "Comparing the matchups…",
+  "Crowning the winner…",
+];
+
+const STEP_SETS = {
+  single: STEPS_SINGLE,
+  discover: STEPS_DISCOVER,
+  arena: STEPS_ARENA,
+};
+
+export function RunningState({
+  mode = "single",
+}: {
+  mode?: "single" | "discover" | "arena";
+}) {
+  const STEPS = STEP_SETS[mode] ?? STEPS_SINGLE;
   const last = STEPS.length - 1;
   const [i, setI] = React.useState(0);
 

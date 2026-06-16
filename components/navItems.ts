@@ -1,10 +1,18 @@
 // Shared primary navigation, used by both the desktop Sidebar and the mobile
 // nav in the Topbar so the destinations can never drift apart.
-import { HomeIcon, SlidersIcon, DocIcon, GearIcon, InfoIcon } from "./icons";
+import {
+  HomeIcon,
+  SlidersIcon,
+  DocIcon,
+  GearIcon,
+  InfoIcon,
+  TrophyIcon,
+} from "./icons";
 
 export const NAV = [
   { href: "/", label: "Dashboard", icon: HomeIcon },
   { href: "/analyzer", label: "SyncFit Analyzer", icon: SlidersIcon },
+  { href: "/arena", label: "Track Arena", icon: TrophyIcon },
   { href: "/report", label: "Reports", icon: DocIcon },
   { href: "/info", label: "How it works", icon: InfoIcon },
   { href: "/settings", label: "Settings", icon: GearIcon },
