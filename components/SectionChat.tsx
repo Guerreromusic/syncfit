@@ -217,7 +217,7 @@ export function SectionChat() {
                 type="submit"
                 disabled={busy || !input.trim()}
                 aria-label="Send"
-                className="sf-btn-primary shrink-0 !px-2.5 !py-1.5"
+                className="sf-btn-white shrink-0 !px-2.5 !py-1.5"
               >
                 <ArrowRightIcon className="h-4 w-4" />
               </button>

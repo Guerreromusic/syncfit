@@ -60,25 +60,15 @@ export default async function HomePage() {
 
       {/* Hero — slim banner */}
       <section className="sf-card relative overflow-hidden">
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-3.5 sm:px-6">
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl">
-              SyncFit <span className="text-soft">by Synclat</span>
-            </h1>
-            <p className="text-xs text-soft">
-              Score, explain, and pitch tracks for global sync.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-            <Link href="/analyzer" className="sf-btn-primary">
-              <RocketIcon className="h-4 w-4" aria-hidden />
-              Deploy research
-            </Link>
-            <Link href="/report" className="sf-btn-white">
-              View reports
-              <ArrowRightIcon className="h-4 w-4" aria-hidden />
-            </Link>
-          </div>
+        <div className="relative z-10 flex flex-wrap items-center gap-2.5 px-5 py-3.5 sm:px-6">
+          <Link href="/analyzer" className="sf-btn-primary">
+            <RocketIcon className="h-4 w-4" aria-hidden />
+            Deploy research
+          </Link>
+          <Link href="/report" className="sf-btn-white">
+            View reports
+            <ArrowRightIcon className="h-4 w-4" aria-hidden />
+          </Link>
         </div>
         <div className="pointer-events-none absolute -right-20 -top-24 h-56 w-56 rounded-full bg-purple-600/12 blur-3xl" />
       </section>
@@ -181,6 +171,16 @@ export default async function HomePage() {
           </Link>
         </section>
       )}
+
+      {/* Brand footer — moved here from the hero banner */}
+      <footer className="border-t border-white/[0.06] pt-6 text-center">
+        <p className="text-sm font-bold tracking-tight text-white">
+          SyncFit <span className="text-soft">by Synclat</span>
+        </p>
+        <p className="mt-0.5 text-xs text-soft">
+          Score, explain, and pitch tracks for global sync.
+        </p>
+      </footer>
     </div>
   );
 }

@@ -181,7 +181,7 @@ export default function InfoPage() {
       </section>
 
       <div className="flex flex-wrap gap-3 pb-4">
-        <Link href="/analyzer" className="sf-btn-primary">
+        <Link href="/analyzer" className="sf-btn-white">
           Start researching
           <ArrowRightIcon className="h-4 w-4" aria-hidden />
         </Link>

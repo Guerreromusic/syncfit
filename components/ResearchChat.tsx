@@ -429,7 +429,7 @@ export function ResearchChat() {
               type="submit"
               disabled={busy || attaching || !input.trim()}
               aria-label="Send"
-              className="sf-btn-primary shrink-0 self-end !px-3 !py-2"
+              className="sf-btn-white shrink-0 self-end !px-3 !py-2"
             >
               {busy ? <Spinner className="h-4 w-4" /> : <ArrowRightIcon className="h-4 w-4" />}
             </button>

@@ -9,7 +9,7 @@ import { BrandDNACard } from "@/components/BrandDNACard";
 import { GeoInfluenceCard } from "@/components/GeoInfluenceCard";
 import { AskAI } from "@/components/AskAI";
 import { SuggestedAlternatives } from "@/components/SuggestedAlternatives";
-import { ArrowRightIcon, MegaphoneIcon } from "@/components/icons";
+import { MegaphoneIcon } from "@/components/icons";
 import type { TrackQAContext } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -52,15 +52,7 @@ export default async function ReportDetailPage({
             iconOnly
           />
           <ArchiveButton id={report.id} archived={Boolean(report.archived)} iconOnly />
-          {/* Track Arena is a secondary path → text link; Pitch is the one primary action. */}
-          <Link
-            href="/arena"
-            className="inline-flex items-center gap-1 text-sm text-soft transition hover:text-white"
-          >
-            Track Arena
-            <ArrowRightIcon className="h-4 w-4" />
-          </Link>
-          <Link href={`/projects/pitch/${report.id}`} className="sf-btn-primary">
+          <Link href={`/projects/pitch/${report.id}`} className="sf-btn-white">
             <MegaphoneIcon className="h-4 w-4" aria-hidden />
             Pitch
           </Link>

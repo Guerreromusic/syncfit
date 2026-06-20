@@ -72,7 +72,7 @@ export function ShareButton({
         type="button"
         onClick={share}
         disabled={loading}
-        className="sf-btn-primary w-full sm:w-auto"
+        className="sf-btn-white w-full sm:w-auto"
       >
         <MegaphoneIcon className="h-4 w-4" aria-hidden />
         {loading ? "Creating link…" : url ? `${label} — copy link` : label}

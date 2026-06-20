@@ -55,7 +55,7 @@ export function CreatePitchProject({ options }: { options: ProjectOption[] }) {
 
   if (!open) {
     return (
-      <button type="button" onClick={() => setOpen(true)} className="sf-btn-primary">
+      <button type="button" onClick={() => setOpen(true)} className="sf-btn-white">
         <PlusIcon className="h-4 w-4" aria-hidden />
         New pitch project
       </button>
@@ -145,7 +145,7 @@ export function CreatePitchProject({ options }: { options: ProjectOption[] }) {
           type="button"
           onClick={create}
           disabled={busy || selected.length < 1}
-          className="sf-btn-primary"
+          className="sf-btn-white"
         >
           {busy ? "Creating…" : `Create pitch (${selected.length})`}
         </button>

@@ -361,7 +361,7 @@ export default function ArenaPage() {
           <button
             type="submit"
             disabled={running || !canCompare}
-            className="sf-btn-primary px-6 py-2.5 text-sm"
+            className="sf-btn-white px-6 py-2.5 text-sm"
           >
             <TrophyIcon className="h-4 w-4" aria-hidden />
             {running ? "Comparing…" : "Compare Tracks"}
