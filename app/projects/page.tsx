@@ -7,15 +7,9 @@ import { BrandLogo } from "@/components/BrandLogo";
 import { StarButton } from "@/components/favourites";
 import { GridIcon, ArrowRightIcon, MegaphoneIcon } from "@/components/icons";
 import type { PitchProject, SavedReport } from "@/lib/types";
+import { scoreColor } from "@/lib/scoreColor";
 
 export const dynamic = "force-dynamic";
-
-function scoreColor(score: number): string {
-  if (score >= 85) return "text-lime-300";
-  if (score >= 70) return "text-lime-400";
-  if (score >= 50) return "text-purple-200";
-  return "text-red-300";
-}
 
 function ProjectCard({ p }: { p: PitchProject }) {
   return (
@@ -191,13 +185,14 @@ export default async function ProjectsPage() {
             )}
           </section>
 
-          {/* Single-track pitches */}
+          {/* Every scored track is pitch-ready — label it honestly rather than
+              implying each was deliberately created as a pitch. */}
           <section className="space-y-3">
-            <p className="sf-eyebrow">Single-track pitches</p>
+            <p className="sf-eyebrow">Scored tracks — ready to pitch</p>
             {reports.length === 0 ? (
               <div className="sf-card sf-card-pad flex items-center gap-3 text-sm text-soft">
                 <MegaphoneIcon className="h-5 w-5 shrink-0 text-purple-300" aria-hidden />
-                No active pitches — score a track from{" "}
+                No scored tracks yet — score one from{" "}
                 <span className="font-semibold text-white">Research</span>, or restore one below.
               </div>
             ) : (

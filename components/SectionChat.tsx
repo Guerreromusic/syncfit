@@ -120,14 +120,26 @@ export function SectionChat() {
         onClick={() => setOpen((o) => !o)}
         aria-label={open ? "Close section assistant" : `Ask about ${sec.name}`}
         title={`Ask about ${sec.name}`}
-        className="sf-liquid fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 text-lime-300 shadow-2xl shadow-black/40 transition hover:scale-105"
+        // Float above the docked footer player (which sits at --sf-player-bottom)
+        // so the two never overlap on pages where both are visible.
+        style={{ bottom: "calc(var(--sf-player-bottom, 1rem) + 4.5rem)" }}
+        className="sf-liquid fixed right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 text-lime-300 shadow-2xl shadow-black/40 transition hover:scale-105"
       >
         {open ? <CloseIcon /> : <ChatBotIcon className="h-5 w-5" aria-hidden />}
       </button>
 
       {/* Panel */}
       {open && (
-        <div className="sf-liquid fixed bottom-36 right-4 z-40 flex h-[62vh] max-h-[540px] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/50">
+        <div
+          role="dialog"
+          aria-label={`Ask about ${sec.name}`}
+          aria-modal="false"
+          onKeyDown={(e) => {
+            if (e.key === "Escape") setOpen(false);
+          }}
+          style={{ bottom: "calc(var(--sf-player-bottom, 1rem) + 8rem)" }}
+          className="sf-liquid fixed right-4 z-40 flex h-[62vh] max-h-[540px] w-[360px] max-w-[calc(100vw-2rem)] flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl shadow-black/50"
+        >
           <div className="flex items-center justify-between gap-2 border-b border-white/10 px-4 py-3">
             <div className="flex items-center gap-2">
               <SparkIcon className="h-4 w-4 text-lime-400" aria-hidden />
@@ -199,7 +211,7 @@ export function SectionChat() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder={`Ask about ${sec.name}…`}
-                className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-soft/60 focus:outline-none"
+                className="min-w-0 flex-1 bg-transparent text-sm text-white placeholder:text-soft/80 focus:outline-none"
               />
               <button
                 type="submit"

@@ -35,7 +35,7 @@ export default async function SharePage({
         </span>
       </header>
 
-      <PitchCard report={report} />
+      <PitchCard report={report} public />
 
       <p className="pb-6 text-center text-xs text-soft">
         Shared via SyncFit by Synclat · scores &amp; summaries only — no full

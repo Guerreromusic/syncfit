@@ -12,18 +12,12 @@ import { TrendingLatin } from "@/components/TrendingLatin";
 import { StatTile } from "@/components/StatTile";
 import { SpotifyPlay } from "@/components/SpotifyPlay";
 import { FirstVisitRedirect } from "@/components/FirstVisitRedirect";
+import { scoreColor } from "@/lib/scoreColor";
 
 export const dynamic = "force-dynamic";
 
 // Estimated minutes of manual research saved per SyncFit analysis.
 const MINUTES_SAVED_PER_REPORT = 25;
-
-function scoreColor(score: number): string {
-  if (score >= 85) return "text-lime-300";
-  if (score >= 70) return "text-lime-400";
-  if (score >= 50) return "text-purple-200";
-  return "text-red-300";
-}
 
 export default async function HomePage() {
   const reports = await listReports();

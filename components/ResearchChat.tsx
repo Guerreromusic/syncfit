@@ -12,6 +12,8 @@ import { StarButton } from "./favourites";
 import { SparkIcon, ArrowRightIcon, PaperclipIcon, RefreshIcon } from "./icons";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import { SCORE_MODEL } from "@/lib/scoring";
+import { scoreColor } from "@/lib/scoreColor";
+import { RESEARCH_SEED_KEY } from "@/lib/keys";
 import type { ScoreBreakdown } from "@/lib/types";
 import type {
   AnalyzeResult,
@@ -21,8 +23,6 @@ import type {
   TrackQAContext,
   TrackQAMessage,
 } from "@/lib/types";
-
-const RESEARCH_SEED_KEY = "syncfit:research:seed";
 
 // Worldwide-neutral brief defaults — the chat text fills `brief`, the rest stay
 // global so discovery isn't biased to any one market/language.
@@ -57,8 +57,13 @@ function isQuestion(t: string): boolean {
   const s = t.trim().toLowerCase();
   if (s.endsWith("?")) return true;
   if (s.length > 140) return false;
+  // Note: bare brief-style imperatives ("give me…", "describe…", "summarise…",
+  // "tell me…", "compare…") are intentionally EXCLUDED — they are common ways to
+  // start a NEW placement brief, so routing them to Ask-AI (about the prior
+  // track) misfires. Genuine follow-ups still match via the trailing "?" above
+  // or the pronoun / "the track" reference below.
   return (
-    /^(what|why|how|is|are|can|could|does|do|did|should|would|will|who|which|when|where|tell me|explain|compare|summari|give me|describe)\b/.test(s) ||
+    /^(what|why|how|is|are|can|could|does|do|did|should|would|will|who|which|when|where|explain)\b/.test(s) ||
     /\b(it|this|that|the track|the song|its|their)\b/.test(s)
   );
 }
@@ -131,7 +136,8 @@ export function ResearchChat() {
       }
       setInput((prev) => {
         const head = prev.trim() ? prev.replace(/\s+$/, "") + "\n\n" : "";
-        return `${head}[From ${data.name}]\n${data.text}`;
+        const tail = data.truncated ? "\n\n…[brief truncated to fit]" : "";
+        return `${head}[From ${data.name}]\n${data.text}${tail}`;
       });
     } catch {
       setAttachErr("Couldn’t read that file. Try again.");
@@ -305,7 +311,9 @@ export function ResearchChat() {
   const submit = React.useCallback(
     (raw: string) => {
       const t = raw.trim();
-      if (!t || busy) return;
+      // Block submit while a file is still extracting, otherwise the typed brief
+      // is sent + cleared and the late extraction repopulates an empty composer.
+      if (!t || busy || attaching) return;
       setInput("");
       add({ role: "user", text: t });
       const link = SPOTIFY_LINK_RE.test(t);
@@ -315,7 +323,7 @@ export function ResearchChat() {
         void runResearch({ briefText: t });
       }
     },
-    [busy, runQA, runResearch, add],
+    [busy, attaching, runQA, runResearch, add],
   );
 
   // Seed from a trending "Deploy" or a suggested alternative.
@@ -398,7 +406,7 @@ export function ResearchChat() {
               disabled={attaching}
               aria-label="Attach a PDF or Word document"
               title="Attach a PDF or Word (.docx) brief"
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-soft transition hover:border-purple-400/50 hover:text-white disabled:opacity-50"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/[0.04] text-soft transition hover:border-purple-400/50 hover:text-white disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/50"
             >
               {attaching ? <Spinner className="h-4 w-4" /> : <PaperclipIcon className="h-4 w-4" />}
             </button>
@@ -408,18 +416,18 @@ export function ResearchChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey && !attaching) {
                   e.preventDefault();
                   submit(input);
                 }
               }}
               rows={1}
               placeholder="Describe a placement, paste a Spotify link, attach a brief, or ask about a track…"
-              className="min-h-[24px] flex-1 resize-none overflow-y-auto bg-transparent py-1 text-sm text-white placeholder:text-soft/60 focus:outline-none"
+              className="min-h-[24px] flex-1 resize-none overflow-y-auto bg-transparent py-1 text-sm text-white placeholder:text-soft/80 focus:outline-none"
             />
             <button
               type="submit"
-              disabled={busy || !input.trim()}
+              disabled={busy || attaching || !input.trim()}
               aria-label="Send"
               className="sf-btn-primary shrink-0 self-end !px-3 !py-2"
             >
@@ -649,13 +657,6 @@ function MiniBreakdown({ breakdown }: { breakdown: ScoreBreakdown }) {
   );
 }
 
-function scoreColor(s: number): string {
-  if (s >= 85) return "text-lime-300";
-  if (s >= 70) return "text-lime-400";
-  if (s >= 50) return "text-purple-200";
-  return "text-red-300";
-}
-
 function DiscoverList({
   tracks,
   onPick,
@@ -706,7 +707,7 @@ function DiscoverList({
             <button
               type="button"
               onClick={() => onPick(t)}
-              className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
+              className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-xs font-semibold text-soft transition hover:border-purple-400/50 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/50"
             >
               Score
             </button>
@@ -716,7 +717,7 @@ function DiscoverList({
       <button
         type="button"
         onClick={onRefresh}
-        className="flex w-full items-center justify-center gap-2 border-t border-white/5 px-4 py-2.5 text-xs font-semibold text-soft transition hover:bg-white/[0.03] hover:text-white"
+        className="flex w-full items-center justify-center gap-2 border-t border-white/5 px-4 py-2.5 text-xs font-semibold text-soft transition hover:bg-white/[0.03] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-purple-400/50"
       >
         <RefreshIcon className="h-3.5 w-3.5" aria-hidden />
         Not feeling these? Show 10 more

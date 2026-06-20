@@ -28,7 +28,10 @@ export async function GET(
   if (!report) {
     return NextResponse.json({ error: "Report not found." }, { status: 404 });
   }
-  return NextResponse.json({ report });
+  // Don't expose the private share token on the generic GET — the dedicated
+  // /share mint endpoint is the only place a token should be handed out.
+  const { shareToken: _omitToken, ...safe } = report;
+  return NextResponse.json({ report: safe });
 }
 
 export async function PATCH(

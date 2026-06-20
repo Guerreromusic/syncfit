@@ -102,7 +102,6 @@ export type NormalizedTrack = {
   hasLyrics?: boolean;
   hasSubtitles?: boolean; // line-synced lyrics available
   hasRichsync?: boolean; // word-synced (karaoke) lyrics available
-  translationOptions?: string[]; // languages the lyrics can be translated into
   mood?: TrackMood | null; // premium; null/absent when not on plan
   credits?: TrackCredits | null; // writers / producers / label (MusicBrainz)
   lyricsContext?: string; // only a short context/snippet if allowed, never full lyrics
@@ -274,8 +273,7 @@ export type ApiStatusState =
   | "connected"
   | "missing"
   | "optional"
-  | "demo"
-  | "later";
+  | "demo";
 
 export type ApiStatus = {
   key: ApiKey;

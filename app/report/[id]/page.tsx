@@ -6,6 +6,7 @@ import { ArchiveButton } from "@/components/ArchiveButton";
 import { AddToArenaButton } from "@/components/AddToArenaButton";
 import { LyricTranslationCard } from "@/components/LyricTranslationCard";
 import { BrandDNACard } from "@/components/BrandDNACard";
+import { GeoInfluenceCard } from "@/components/GeoInfluenceCard";
 import { AskAI } from "@/components/AskAI";
 import { SuggestedAlternatives } from "@/components/SuggestedAlternatives";
 import { ArrowRightIcon, MegaphoneIcon } from "@/components/icons";
@@ -51,13 +52,17 @@ export default async function ReportDetailPage({
             iconOnly
           />
           <ArchiveButton id={report.id} archived={Boolean(report.archived)} iconOnly />
-          <Link href={`/projects/pitch/${report.id}`} className="sf-btn-secondary">
-            <MegaphoneIcon className="h-4 w-4" aria-hidden />
-            Pitch
-          </Link>
-          <Link href="/arena" className="sf-btn-secondary">
+          {/* Track Arena is a secondary path → text link; Pitch is the one primary action. */}
+          <Link
+            href="/arena"
+            className="inline-flex items-center gap-1 text-sm text-soft transition hover:text-white"
+          >
             Track Arena
             <ArrowRightIcon className="h-4 w-4" />
+          </Link>
+          <Link href={`/projects/pitch/${report.id}`} className="sf-btn-primary">
+            <MegaphoneIcon className="h-4 w-4" aria-hidden />
+            Pitch
           </Link>
         </div>
       </div>
@@ -82,16 +87,19 @@ export default async function ReportDetailPage({
         artist={report.track.artist}
       />
 
+      {/* Worldwide influence map — self-hides when AI is not configured */}
+      <GeoInfluenceCard
+        title={report.track.title}
+        artist={report.track.artist}
+        language={report.track.language}
+        genre={report.track.genre}
+      />
+
       {/* Suggested tracks — at the very end */}
       <SuggestedAlternatives
         alternatives={report.analysis.suggestedAlternatives}
         brief={report.brief}
       />
-
-      <p className="pb-4 text-center text-xs text-soft">
-        SyncFit by Synclat · Compliance: only short lyric context (never full
-        lyrics) — fetched live, never stored.
-      </p>
     </div>
   );
 }

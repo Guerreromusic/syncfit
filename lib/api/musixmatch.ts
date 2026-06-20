@@ -140,22 +140,6 @@ function mxmUrl(endpoint: string, params: Record<string, string | number | undef
 /** Map a raw Musixmatch track to our NormalizedTrack (no lyrics stored). */
 function normalizeMxmTrack(t: MxmTrack, lyricsContext?: string): NormalizedTrack {
   const genres = genreNames(t.primary_genres, t.secondary_genres);
-  // track_lyrics_translation_options is sometimes an array, sometimes an object,
-  // sometimes absent — normalize all three to a string[] of language codes.
-  const transRaw = t.track_lyrics_translation_options;
-  const transList: unknown[] = Array.isArray(transRaw)
-    ? transRaw
-    : transRaw && typeof transRaw === "object"
-      ? Object.values(transRaw as Record<string, unknown>)
-      : [];
-  const translationOptions = transList
-    .map((o) =>
-      typeof o === "string"
-        ? o
-        : (o as { language?: string; selected_language?: string })?.language ??
-          (o as { selected_language?: string })?.selected_language,
-    )
-    .filter((x): x is string => Boolean(x));
   const num = (v: unknown): number | undefined =>
     typeof v === "number" && Number.isFinite(v) ? v : undefined;
   const flag = (v: unknown): boolean | undefined =>
@@ -186,7 +170,6 @@ function normalizeMxmTrack(t: MxmTrack, lyricsContext?: string): NormalizedTrack
     hasLyrics: flag(t.has_lyrics),
     hasSubtitles: flag(t.has_subtitles),
     hasRichsync: flag(t.has_richsync),
-    translationOptions: translationOptions.length ? translationOptions : undefined,
     lyricsContext: lyricsContext || undefined,
     source: "musixmatch",
   };
@@ -266,9 +249,18 @@ export async function enrichTrackMetadata(
   return { ...track, language, mood };
 }
 
-async function mxmGet(url: string): Promise<any> {
+async function mxmGet(url: string, retryOn429 = true): Promise<any> {
   // No-store: never cache Musixmatch responses (compliance + freshness).
   const res = await fetchWithTimeout(url, { cache: "no-store" }, 10000);
+  // One short backoff on rate-limit before failing (Musixmatch is the busiest
+  // provider). Callers are best-effort and swallow errors, so this just lifts the
+  // hit rate during bursts.
+  if (res.status === 429 && retryOn429) {
+    const ra = Number(res.headers.get("retry-after"));
+    const waitMs = Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 500, 2000);
+    await new Promise((r) => setTimeout(r, waitMs));
+    return mxmGet(url, false);
+  }
   if (!res.ok) {
     throw new Error(`Musixmatch HTTP ${res.status}`);
   }

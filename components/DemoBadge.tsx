@@ -29,11 +29,11 @@ export function DemoBadge({
       <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-purple-300" />
       <p className="text-xs leading-relaxed text-purple-100">
         <span className="font-semibold">Demo mode:</span> this result uses{" "}
-        {parts.join(" and ")}. Add the relevant API keys in{" "}
-        <code className="rounded bg-ink-900/70 px-1 py-0.5 text-[11px]">
+        {parts.join(" and ")}. Add the relevant API keys to your environment
+        (<code className="rounded bg-ink-900/70 px-1 py-0.5 text-[11px]">
           .env.local
         </code>{" "}
-        for live data.
+        locally, host env vars in production) for live data.
       </p>
     </div>
   );

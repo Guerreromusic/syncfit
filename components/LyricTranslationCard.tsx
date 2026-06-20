@@ -90,18 +90,24 @@ export function LyricTranslationCard({
   const [done, setDone] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [target, setTarget] = React.useState("English");
+  // Cache the short context per track so changing the target language (or brief)
+  // re-translates without re-pulling the same Musixmatch snippet.
+  const snippetRef = React.useRef<{ trackId: string; snippet: string } | null>(null);
 
   React.useEffect(() => {
     let active = true;
     setLoading(true);
+    const cachedSnippet =
+      snippetRef.current?.trackId === trackId ? snippetRef.current.snippet : undefined;
     fetch("/api/lyrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trackId, brief, target }),
+      body: JSON.stringify({ trackId, brief, target, snippet: cachedSnippet }),
     })
       .then((r) => r.json())
       .then((d: LyricData) => {
         if (!active) return;
+        if (d.snippet) snippetRef.current = { trackId, snippet: d.snippet };
         setData(d);
         setDone(true);
         setLoading(false);

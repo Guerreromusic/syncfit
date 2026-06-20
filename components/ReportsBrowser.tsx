@@ -10,13 +10,7 @@ import { TrackCover } from "./TrackCover";
 import { SpotifyPlay } from "./SpotifyPlay";
 import { StarButton } from "./favourites";
 import { GridIcon, ListIcon } from "./icons";
-
-function scoreColor(score: number): string {
-  if (score >= 85) return "text-lime-300";
-  if (score >= 70) return "text-lime-400";
-  if (score >= 50) return "text-purple-200";
-  return "text-red-300";
-}
+import { scoreColor } from "@/lib/scoreColor";
 
 type View = "board" | "list";
 

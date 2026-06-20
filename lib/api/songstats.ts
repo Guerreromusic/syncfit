@@ -46,7 +46,7 @@ function songstatsUrl(
   return url.toString();
 }
 
-async function songstatsGet(url: string): Promise<any> {
+async function songstatsGet(url: string, retryOn429 = true): Promise<any> {
   // Never cache (freshness + we don't persist provider responses).
   const res = await fetchWithTimeout(
     url,
@@ -56,6 +56,14 @@ async function songstatsGet(url: string): Promise<any> {
     },
     10000,
   );
+  // One short backoff on rate-limit before giving up, so a momentary 429 during
+  // the trending burst doesn't drop the row entirely.
+  if (res.status === 429 && retryOn429) {
+    const ra = Number(res.headers.get("retry-after"));
+    const waitMs = Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 500, 2000);
+    await new Promise((r) => setTimeout(r, waitMs));
+    return songstatsGet(url, false);
+  }
   const json = await res.json().catch(() => null);
   if (!res.ok || json?.result === "error") {
     const msg = json?.message || `HTTP ${res.status}`;
@@ -302,24 +310,6 @@ export async function resolveSpotifyId(
   }
 }
 
-/** Lightweight cover-art lookup for a title/artist via Songstats search. */
-export async function getCoverArt(
-  title: string,
-  artist: string,
-): Promise<string | null> {
-  if (!isConfigured.songstats() || !title.trim()) return null;
-  try {
-    const q = `${title} ${artist}`.trim();
-    const searchJson = await songstatsGet(
-      songstatsUrl(SONGSTATS_ENDPOINTS.search, { q, limit: 1 }),
-    );
-    const top = searchJson?.results?.[0] ?? null;
-    return top?.avatar ?? null;
-  } catch {
-    return null;
-  }
-}
-
 // =============================================================================
 // Trending Latin — curated current hits enriched with live Songstats data
 // (real artwork + stream counts). Songstats has no global chart endpoint, so
@@ -425,14 +415,41 @@ const TRENDING_SEED: { title: string; artist: string; genre: string }[] = [
 let trendingCache: { data: TrendingTrack[]; ts: number } | null = null;
 const TRENDING_TTL_MS = 60 * 60 * 1000; // 1h session
 
+/**
+ * Map an async fn over items with at most `limit` in flight at once. The trending
+ * seed list is ~74 entries, each up to 3 sequential Songstats calls; firing them
+ * all at once would burst ~220 requests and draw 429s. A small worker pool keeps
+ * the documented throttled-enrichment behaviour while still degrading per-item.
+ */
+async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out: R[] = new Array(items.length);
+  let cursor = 0;
+  async function worker(): Promise<void> {
+    while (cursor < items.length) {
+      const i = cursor++;
+      out[i] = await fn(items[i]);
+    }
+  }
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => worker()),
+  );
+  return out;
+}
+
 export async function getTrendingLatin(): Promise<TrendingTrack[]> {
   if (!isConfigured.songstats()) return [];
   if (trendingCache && Date.now() - trendingCache.ts < TRENDING_TTL_MS) {
     return trendingCache.data;
   }
 
-  const results = await Promise.all(
-    TRENDING_SEED.map(async (s): Promise<TrendingTrack> => {
+  const results = await mapPool(
+    TRENDING_SEED,
+    5,
+    async (s): Promise<TrendingTrack> => {
       let title = s.title;
       let artworkUrl: string | null = null;
       let streams: number | null = null;
@@ -503,7 +520,7 @@ export async function getTrendingLatin(): Promise<TrendingTrack[]> {
         genre: s.genre,
         spotifyTrackId,
       };
-    }),
+    },
   );
 
   // Keep the curated order; cap the rotating pool at 100.

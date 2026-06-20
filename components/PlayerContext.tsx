@@ -319,6 +319,7 @@ function FooterPlayer({
             style={sliderFill(pct)}
             className="sf-range absolute inset-x-0 top-0 sm:hidden"
             aria-label="Seek"
+            aria-valuetext={`${fmt(time)} of ${fmt(dur || 30)}`}
           />
         )}
 
@@ -406,6 +407,7 @@ function FooterPlayer({
               style={sliderFill(pct)}
               className="sf-range flex-1"
               aria-label="Seek"
+              aria-valuetext={`${fmt(time)} of ${fmt(dur || 30)}`}
             />
             <span className="w-8 text-[10px] tabular-nums text-soft">{fmt(dur || 30)}</span>
           </div>
@@ -438,6 +440,7 @@ function FooterPlayer({
                 style={sliderFill((muted ? 0 : vol) * 100)}
                 className="sf-range w-16"
                 aria-label="Volume"
+                aria-valuetext={`${Math.round((muted ? 0 : vol) * 100)}% volume`}
               />
             </div>
           )}
@@ -455,7 +458,9 @@ function FooterPlayer({
           <audio
             ref={audioRef}
             src={detail!.previewUrl!}
-            preload="auto"
+            // metadata only: don't keep buffering the 30s preview after a
+            // route-change pause (we pause on nav); the user re-buffers on play.
+            preload="metadata"
             onTimeUpdate={(e) => setTime(e.currentTarget.currentTime)}
             onLoadedMetadata={(e) => setDur(e.currentTarget.duration)}
             onWaiting={() => setBuffering(true)}

@@ -5,6 +5,7 @@ import { AddToArenaButton } from "./AddToArenaButton";
 import { TrackCover } from "./TrackCover";
 import { SpotifyPlay } from "./SpotifyPlay";
 import { StarButton } from "./favourites";
+import { scoreColor } from "@/lib/scoreColor";
 
 /** Build the starred-track payload from a saved report. */
 function favOf(r: SavedReport) {
@@ -19,12 +20,6 @@ function favOf(r: SavedReport) {
   };
 }
 
-function scoreColor(score: number): string {
-  if (score >= 85) return "text-lime-300";
-  if (score >= 70) return "text-lime-400";
-  if (score >= 50) return "text-purple-200";
-  return "text-red-300";
-}
 
 /**
  * A saved-report card. The whole card is clickable (overlay link) while the

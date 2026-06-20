@@ -88,7 +88,7 @@ export function Sidebar() {
               {/* Hover tooltip — explains what the section holds */}
               <span
                 role="tooltip"
-                className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 w-56 -translate-y-1/2 translate-x-1 rounded-xl border border-white/10 bg-ink-900/95 px-3 py-2 text-xs font-normal leading-relaxed text-soft opacity-0 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md transition duration-150 group-hover:translate-x-0 group-hover:opacity-100"
+                className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 w-56 -translate-y-1/2 translate-x-1 rounded-xl border border-white/10 bg-ink-900/95 px-3 py-2 text-xs font-normal leading-relaxed text-soft opacity-0 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md transition duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
               >
                 {desc}
               </span>
@@ -123,7 +123,7 @@ export function Sidebar() {
 
             <span
               role="tooltip"
-              className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 w-56 -translate-y-1/2 translate-x-1 rounded-xl border border-white/10 bg-ink-900/95 px-3 py-2 text-xs font-normal leading-relaxed text-soft opacity-0 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md transition duration-150 group-hover:translate-x-0 group-hover:opacity-100"
+              className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 w-56 -translate-y-1/2 translate-x-1 rounded-xl border border-white/10 bg-ink-900/95 px-3 py-2 text-xs font-normal leading-relaxed text-soft opacity-0 shadow-[0_12px_30px_-12px_rgba(0,0,0,0.8)] backdrop-blur-md transition duration-150 group-hover:translate-x-0 group-hover:opacity-100 group-focus-within:translate-x-0 group-focus-within:opacity-100"
             >
               {settings.desc}
             </span>

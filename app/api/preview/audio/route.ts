@@ -97,7 +97,14 @@ export async function GET(req: Request) {
   }
   if (!headers.has("content-type")) headers.set("content-type", "audio/mpeg");
   if (!headers.has("accept-ranges")) headers.set("accept-ranges", "bytes");
-  headers.set("cache-control", "public, max-age=3600");
+  // Only cache full 200 bodies. A 206 is specific to its requested byte range, so
+  // caching it publicly could serve a mismatched partial range to a later seek.
+  if (upstream.status === 206) {
+    headers.set("cache-control", "no-store");
+    headers.set("vary", "range");
+  } else {
+    headers.set("cache-control", "public, max-age=3600");
+  }
 
   return new NextResponse(upstream.body, { status: upstream.status, headers });
 }

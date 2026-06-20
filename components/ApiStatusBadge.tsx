@@ -31,12 +31,6 @@ const STATE_STYLES: Record<
     ring: "ring-purple-500/30",
     chip: "Demo mode",
   },
-  later: {
-    dot: "bg-ink-600",
-    text: "text-soft",
-    ring: "ring-ink-600",
-    chip: "Later",
-  },
 };
 
 /** A single API status badge. */

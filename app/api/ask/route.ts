@@ -38,7 +38,12 @@ export async function POST(req: Request) {
         { status: 503 },
       );
     }
-    const msg = err instanceof Error ? err.message : "AI request failed.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    // Log the real error server-side; return a generic message so an upstream
+    // provider payload (rate-limit/error body) never surfaces in the UI.
+    console.error("[/api/ask] AI request failed:", err);
+    return NextResponse.json(
+      { error: "AI request failed — please try again." },
+      { status: 502 },
+    );
   }
 }

@@ -190,27 +190,66 @@ function firstTrackUrlIn(s: string): string | null {
   return m ? `https://open.spotify.com/track/${m[1]}` : null;
 }
 
+// Only these hosts may be fetched while expanding a Spotify share short-link.
+// The short-link's redirect target is attacker-mintable (Branch.io), so we must
+// re-validate every hop or the chain could be used to make the server fetch an
+// internal/arbitrary host (SSRF).
+const SHORTLINK_HOSTS = [
+  /(^|\.)spotify\.link$/,
+  /(^|\.)spotify\.app\.link$/,
+  /(^|\.)spotify\.com$/,
+];
+function shortLinkHostAllowed(u: URL): boolean {
+  return u.protocol === "https:" && SHORTLINK_HOSTS.some((re) => re.test(u.hostname));
+}
+
 /** Follow a spotify.link / spotify.app.link short URL to its real Spotify URL. */
 async function expandShortLink(text: string): Promise<string | null> {
   const m = text.match(/https?:\/\/(?:spotify\.link|spotify\.app\.link)\/\S+/i);
   if (!m) return null;
+  let url: URL;
   try {
-    const res = await fetchWithTimeout(
-      m[0],
-      { redirect: "follow", headers: { "User-Agent": "Mozilla/5.0 (SyncFit)" } },
-      8000,
-    );
-    // HTTP-redirect case: the final URL is the real Spotify URL.
-    if (/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|album|playlist)\//.test(res.url)) {
-      return res.url;
+    url = new URL(m[0]);
+  } catch {
+    return null;
+  }
+  try {
+    // Follow redirects MANUALLY, re-validating the host on EVERY hop (including
+    // the first) so a 30x can never steer the fetch onto a forbidden host.
+    let res: Response | null = null;
+    for (let hop = 0; hop < 5; hop++) {
+      if (!shortLinkHostAllowed(url)) return null;
+      res = await fetchWithTimeout(
+        url.toString(),
+        { redirect: "manual", headers: { "User-Agent": "Mozilla/5.0 (SyncFit)" } },
+        8000,
+      );
+      if (res.status >= 300 && res.status < 400) {
+        const loc = res.headers.get("location");
+        if (!loc) break;
+        try {
+          url = new URL(loc, url); // resolve relative redirects, re-validate next loop
+        } catch {
+          return null;
+        }
+        continue;
+      }
+      break; // non-redirect response — inspect it below
+    }
+    if (!res) return null;
+    // HTTP-redirect case: the resolved URL is the real Spotify URL.
+    if (/open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|album|playlist)\//.test(url.toString())) {
+      return url.toString();
     }
     // Branch.io case: an HTML page with a JS/meta redirect — the destination is
-    // embedded in the body.
+    // embedded in the body (parsed only, never fetched here).
     const html = await res.text();
     const um = html.match(
       /open\.spotify\.com\/(?:intl-[a-z]{2}\/)?(?:track|album|playlist)\/[A-Za-z0-9]{22}/,
     );
-    return um ? um[0] : res.url || null;
+    if (um) return um[0];
+    // Otherwise only surface the resolved URL when it is itself a Spotify host.
+    return /(^|\.)spotify\.com$/.test(url.hostname) ? url.toString() : null;
   } catch {
     return null;
   }

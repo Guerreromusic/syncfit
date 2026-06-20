@@ -47,7 +47,12 @@ export async function POST(req: Request) {
         { status: 503 },
       );
     }
-    const msg = err instanceof Error ? err.message : "Assistant request failed.";
-    return NextResponse.json({ error: msg }, { status: 502 });
+    // Log server-side; return a generic message so no upstream provider payload
+    // leaks into the UI.
+    console.error("[/api/section-chat] assistant request failed:", err);
+    return NextResponse.json(
+      { error: "Assistant request failed — please try again." },
+      { status: 502 },
+    );
   }
 }

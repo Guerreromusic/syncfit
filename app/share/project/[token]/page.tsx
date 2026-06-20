@@ -23,7 +23,9 @@ export default async function ShareProjectPage({
   if (!project) notFound();
 
   const fetched = await Promise.all(project.reportIds.map((id) => getReport(id)));
-  const reports = fetched.filter((r): r is SavedReport => Boolean(r));
+  // Exclude archived member tracks so archiving a report also pulls it from any
+  // shared project it belongs to (archive == revoke, consistently).
+  const reports = fetched.filter((r): r is SavedReport => r != null && !r.archived);
   if (!reports.length) notFound();
 
   return (
@@ -47,7 +49,7 @@ export default async function ShareProjectPage({
         </p>
       </div>
 
-      <ProjectPitchView reports={reports} />
+      <ProjectPitchView reports={reports} public />
 
       <p className="pb-6 text-center text-xs text-soft">
         Shared via SyncFit by Synclat · scores &amp; summaries only — no full

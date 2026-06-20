@@ -1,15 +1,9 @@
 import * as React from "react";
 import type { AnalyzeResult, ScoreBreakdown } from "@/lib/types";
 import { SCORE_MODEL } from "@/lib/scoring";
+import { scoreColor } from "@/lib/scoreColor";
 import { TrophyIcon, WaveIcon } from "./icons";
 import { SpotifyPlay } from "./SpotifyPlay";
-
-function scoreColor(score: number): string {
-  if (score >= 85) return "text-lime-300";
-  if (score >= 70) return "text-lime-400";
-  if (score >= 50) return "text-purple-200";
-  return "text-red-300";
-}
 
 /** Side-by-side benchmark of up to 3 analyzed tracks against one brief. */
 export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
@@ -37,7 +31,10 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
         }
       >
         {ranked.map(({ r }, rank) => {
-          const isWinner = rank === 0 && r.analysis.syncFitScore === winnerScore;
+          // Guard on a positive score so an all-zero comparison shows no winner
+          // (matches the breakdown table's `s > 0` highlight rule below).
+          const isWinner =
+            rank === 0 && r.analysis.syncFitScore === winnerScore && winnerScore > 0;
           return (
             <div
               key={r.track.trackId + rank}
@@ -96,24 +93,14 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
                   Safety · {r.analysis.brandSafety.level}
                 </span>
               </div>
-              {r.marketSignal.spotifyTrackId ? (
-                <iframe
-                  title={`Preview: ${r.track.title}`}
-                  src={`https://open.spotify.com/embed/track/${r.marketSignal.spotifyTrackId}?theme=0`}
-                  className="mt-3 w-full rounded-lg"
-                  height={80}
-                  loading="lazy"
-                  allow="encrypted-media"
-                />
-              ) : (
-                <SpotifyPlay
-                  title={r.track.title}
-                  artist={r.track.artist}
-                  mode="embed"
-                  compact
-                  className="mt-3"
-                />
-              )}
+              {/* Unified in-app playback — every track plays through the docked
+                  footer player, with or without a Spotify id (no external embed). */}
+              <SpotifyPlay
+                title={r.track.title}
+                artist={r.track.artist}
+                spotifyId={r.marketSignal.spotifyTrackId}
+                className="mt-3"
+              />
             </div>
           );
         })}

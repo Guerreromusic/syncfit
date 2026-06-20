@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { WaveIcon, RocketIcon } from "./icons";
-import { RESEARCH_SEED_KEY } from "./DeployAlternativeButton";
+import { RESEARCH_SEED_KEY } from "@/lib/keys";
 import { usePlayer, type PlayerTrack } from "./PlayerContext";
 import { StarButton } from "./favourites";
 import type { TrendingTrack } from "@/lib/types";
@@ -54,7 +54,7 @@ function TrendingCard({
           </div>
         )}
         {track.genre && (
-          <span className="absolute left-0.5 top-0.5 rounded bg-black/60 px-1 py-px text-[7px] font-bold text-lime-300 backdrop-blur-sm">
+          <span className="absolute left-0.5 top-0.5 rounded bg-black/60 px-1 py-px text-[9px] font-bold text-lime-300 backdrop-blur-sm">
             {track.genre}
           </span>
         )}
@@ -90,14 +90,14 @@ function TrendingCard({
           className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:text-amber-300 group-hover:opacity-100 aria-pressed:text-amber-300 aria-pressed:opacity-100"
         />
       </div>
-      <p className="mt-1 truncate text-[9px] font-semibold leading-tight text-white">{track.title}</p>
-      <p className="truncate text-[8px] leading-tight text-soft">{track.artist}</p>
+      <p className="mt-1 truncate text-[11px] font-semibold leading-tight text-white">{track.title}</p>
+      <p className="truncate text-[10px] leading-tight text-soft">{track.artist}</p>
       <button
         type="button"
         onClick={() => deployTrending(track)}
         title={`Deploy research on “${track.title}”`}
         aria-label={`Deploy research on ${track.title}`}
-        className="mt-1 inline-flex w-full items-center justify-center gap-0.5 rounded border border-white/10 bg-white/[0.03] py-0.5 text-[8px] font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
+        className="mt-1 inline-flex w-full items-center justify-center gap-0.5 rounded border border-white/10 bg-white/[0.03] py-0.5 text-[10px] font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
       >
         <RocketIcon className="h-2.5 w-2.5" aria-hidden />
         Deploy

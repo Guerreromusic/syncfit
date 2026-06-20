@@ -3,8 +3,7 @@
 import * as React from "react";
 import { RocketIcon } from "./icons";
 import type { Brief } from "@/lib/types";
-
-export const RESEARCH_SEED_KEY = "syncfit:research:seed";
+import { RESEARCH_SEED_KEY } from "@/lib/keys";
 
 /**
  * "Deploy" a suggested alternative into the Research console: stashes the track

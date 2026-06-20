@@ -41,7 +41,16 @@ export function AddToArenaButton({
   const [inArena, setInArena] = React.useState(false);
 
   React.useEffect(() => {
-    setInArena(readQueue().some((t) => idOf(t) === me));
+    const recompute = () => setInArena(readQueue().some((t) => idOf(t) === me));
+    recompute();
+    // Re-sync when another button toggles the queue. `storage` fires across tabs;
+    // `focus` covers same-tab updates (e.g. another AddToArena button on the page).
+    window.addEventListener("focus", recompute);
+    window.addEventListener("storage", recompute);
+    return () => {
+      window.removeEventListener("focus", recompute);
+      window.removeEventListener("storage", recompute);
+    };
   }, [me]);
 
   function toggle(e: React.MouseEvent) {

@@ -10,7 +10,14 @@ import type { SavedReport } from "@/lib/types";
  * The final multi-track pitch: each report is a TAB you can switch between by
  * clicking, or by sliding/swiping the cards left and right.
  */
-export function ProjectPitchView({ reports }: { reports: SavedReport[] }) {
+export function ProjectPitchView({
+  reports,
+  public: isPublic = false,
+}: {
+  reports: SavedReport[];
+  /** Hide each card's verbatim brief when rendered on a public share link. */
+  public?: boolean;
+}) {
   const count = reports.length;
   const [index, setIndex] = React.useState(0);
   const [drag, setDrag] = React.useState(0);
@@ -180,7 +187,7 @@ export function ProjectPitchView({ reports }: { reports: SavedReport[] }) {
                     backfaceVisibility: "hidden",
                   }}
                 >
-                  <PitchCard report={r} variant="glass" />
+                  <PitchCard report={r} variant="glass" public={isPublic} />
                 </div>
               </div>
             );

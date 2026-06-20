@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { PencilIcon } from "./icons";
 
 /**
@@ -19,10 +20,12 @@ export function EditableName({
   ariaLabel?: string;
   title?: string;
 }) {
+  const router = useRouter();
   const [name, setName] = React.useState(initialName);
   const [editing, setEditing] = React.useState(false);
   const [draft, setDraft] = React.useState(initialName);
   const [saving, setSaving] = React.useState(false);
+  const [error, setError] = React.useState(false);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -30,6 +33,7 @@ export function EditableName({
   }, [editing]);
 
   function start() {
+    setError(false);
     setDraft(name);
     setEditing(true);
   }
@@ -41,6 +45,7 @@ export function EditableName({
     const prev = name;
     setName(next); // optimistic
     setSaving(true);
+    setError(false);
     try {
       const res = await fetch(endpoint, {
         method: "PATCH",
@@ -51,8 +56,11 @@ export function EditableName({
       const data = await res.json();
       const updated = data.report ?? data.project;
       if (updated?.name) setName(updated.name);
+      // Refresh the server-rendered tree so list/card views pick up the new name.
+      router.refresh();
     } catch {
       setName(prev); // revert
+      setError(true);
     } finally {
       setSaving(false);
     }
@@ -77,20 +85,28 @@ export function EditableName({
   }
 
   return (
-    <button
-      type="button"
-      onClick={start}
-      title={title}
-      className="group inline-flex max-w-full items-center gap-2 text-left"
-    >
-      <span className="truncate text-2xl font-bold text-white">{name}</span>
-      <PencilIcon
-        className={
-          "h-4 w-4 shrink-0 text-soft transition group-hover:text-purple-300 " +
-          (saving ? "animate-pulse" : "opacity-0 group-hover:opacity-100")
-        }
-        aria-hidden
-      />
-    </button>
+    <span className="inline-flex max-w-full flex-col">
+      <button
+        type="button"
+        onClick={start}
+        title={error ? "Rename failed — click to try again" : title}
+        className="group inline-flex max-w-full items-center gap-2 text-left"
+      >
+        <span className="truncate text-2xl font-bold text-white">{name}</span>
+        <PencilIcon
+          className={
+            "h-4 w-4 shrink-0 transition group-hover:text-purple-300 " +
+            (error ? "text-red-300 " : "text-soft ") +
+            (saving ? "animate-pulse" : "opacity-0 group-hover:opacity-100")
+          }
+          aria-hidden
+        />
+      </button>
+      {error && (
+        <span role="status" className="text-xs text-red-300">
+          Couldn’t save the name — try again.
+        </span>
+      )}
+    </span>
   );
 }

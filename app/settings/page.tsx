@@ -52,9 +52,11 @@ export default function SettingsPage() {
 
           <p className="sf-eyebrow mt-6">Configure keys</p>
           <p className="mt-2 text-sm leading-relaxed text-soft">
-            Add or update keys in <code className="rounded bg-ink-800 px-1.5 py-0.5 text-purple-100">.env.local</code> at the
-            project root, then restart the dev server. The status badges refresh
-            on the next load. SyncFit runs fully in demo mode with no keys at all.
+            Locally, add keys to <code className="rounded bg-ink-800 px-1.5 py-0.5 text-purple-100">.env.local</code> at the
+            project root and restart the dev server; in production, set them as
+            your host&rsquo;s environment variables and redeploy. The status badges
+            refresh on the next load. SyncFit runs fully in demo mode with no keys
+            at all.
           </p>
         </div>
       </div>

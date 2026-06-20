@@ -147,7 +147,7 @@ html {
   /* Form controls */
   .sf-input {
     @apply w-full rounded-xl border border-ink-600 bg-ink-900/70 px-3.5 py-2.5 text-sm
-      text-white placeholder:text-soft/60 transition
+      text-white placeholder:text-soft/80 transition
       focus:border-purple-400/70 focus:outline-none focus-visible:ring-2
       focus-visible:ring-purple-400/30;
   }

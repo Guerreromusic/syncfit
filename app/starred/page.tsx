@@ -4,16 +4,8 @@ import { useFavouritesList, StarButton, type FavTrack } from "@/components/favou
 import { SpotifyPlay } from "@/components/SpotifyPlay";
 import { TrackCover } from "@/components/TrackCover";
 import { StarIcon, RocketIcon } from "@/components/icons";
-
-const RESEARCH_SEED_KEY = "syncfit:research:seed";
-
-function scoreColor(score?: number): string {
-  if (score == null) return "text-soft";
-  if (score >= 85) return "text-lime-300";
-  if (score >= 70) return "text-lime-400";
-  if (score >= 50) return "text-purple-200";
-  return "text-red-300";
-}
+import { scoreColor } from "@/lib/scoreColor";
+import { RESEARCH_SEED_KEY } from "@/lib/keys";
 
 function research(t: FavTrack) {
   try {

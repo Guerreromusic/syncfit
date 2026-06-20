@@ -77,7 +77,12 @@ export function AskAI({
   }
 
   return (
-    <div className="mt-1 rounded-xl border border-purple-400/25 bg-purple-500/[0.06]">
+    <div
+      className="mt-1 rounded-xl border border-purple-400/25 bg-purple-500/[0.06]"
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setOpen(false);
+      }}
+    >
       <div className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2">
         <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-100">
           <SparkIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
@@ -154,6 +159,7 @@ export function AskAI({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask about this track…"
+          aria-label={`Ask AI about ${context.title}`}
           className="min-w-0 flex-1 bg-transparent text-xs text-white placeholder:text-soft focus:outline-none"
         />
         <button

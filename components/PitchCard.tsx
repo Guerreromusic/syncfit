@@ -29,9 +29,12 @@ const SAFETY_STYLE: Record<string, string> = {
 export function PitchCard({
   report,
   variant = "card",
+  public: isPublic = false,
 }: {
   report: SavedReport;
   variant?: "card" | "glass";
+  /** On public /share surfaces, hide the verbatim creative brief (private input). */
+  public?: boolean;
 }) {
   const { track, brief, analysis, marketSignal } = report;
   const created = new Date(report.createdAt).toLocaleString("en-US", {
@@ -136,8 +139,8 @@ export function PitchCard({
         )}
       </div>
 
-      {/* Brand safety + brief */}
-      <div className="grid grid-cols-1 sm:grid-cols-2">
+      {/* Brand safety + brief (brief hidden on public share links) */}
+      <div className={"grid grid-cols-1" + (isPublic ? "" : " sm:grid-cols-2")}>
         <div className="border-t border-white/[0.06] px-5 py-5 sm:px-6">
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="sf-eyebrow">Brand safety</p>
@@ -162,12 +165,14 @@ export function PitchCard({
             ))}
           </ul>
         </div>
-        <div className="border-t border-white/[0.06] px-5 py-5 sm:border-l sm:px-6">
-          <p className="sf-eyebrow mb-2">Creative brief</p>
-          <p className="line-clamp-4 text-xs leading-relaxed text-soft">
-            {brief.brief || "—"}
-          </p>
-        </div>
+        {!isPublic && (
+          <div className="border-t border-white/[0.06] px-5 py-5 sm:border-l sm:px-6">
+            <p className="sf-eyebrow mb-2">Creative brief</p>
+            <p className="line-clamp-4 text-xs leading-relaxed text-soft">
+              {brief.brief || "—"}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Footer */}

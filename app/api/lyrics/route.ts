@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 60; // Musixmatch lyric fetch + LLM translation/analysis.
 
 export async function POST(req: Request) {
-  let body: { trackId?: string; brief?: string; target?: string };
+  let body: { trackId?: string; brief?: string; target?: string; snippet?: string };
   try {
     body = await req.json();
   } catch {
@@ -21,11 +21,19 @@ export async function POST(req: Request) {
     return NextResponse.json({ available: false });
   }
 
-  let snippet: string | undefined;
-  try {
-    snippet = await getTrackLyricsContext(trackId);
-  } catch {
-    snippet = undefined;
+  // Reuse the short context the client already holds (e.g. when only the target
+  // language changed) so we don't re-pull the same Musixmatch snippet each time.
+  // Still in-memory only, never stored — same compliance posture either way.
+  let snippet: string | undefined =
+    typeof body.snippet === "string" && body.snippet.trim()
+      ? body.snippet
+      : undefined;
+  if (!snippet) {
+    try {
+      snippet = await getTrackLyricsContext(trackId);
+    } catch {
+      snippet = undefined;
+    }
   }
   if (!snippet) {
     return NextResponse.json({ available: false });

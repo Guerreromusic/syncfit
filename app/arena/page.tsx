@@ -265,6 +265,7 @@ export default function ArenaPage() {
 
           <textarea
             className="sf-input min-h-[72px] resize-y"
+            aria-label="Brief for the arena comparison"
             placeholder="e.g. Energetic Colombian football brand ad — celebratory, stadium-crowd feel, family-friendly."
             value={briefText}
             onChange={(e) => setBriefText(e.target.value)}
@@ -318,12 +319,14 @@ export default function ArenaPage() {
                 </div>
                 <input
                   className="sf-input"
+                  aria-label={`Track ${i + 1} song title`}
                   placeholder="Song title"
                   value={t.title}
                   onChange={(e) => setTrack(i, "title", e.target.value)}
                 />
                 <input
                   className="sf-input mt-2"
+                  aria-label={`Track ${i + 1} artist name`}
                   placeholder="Artist name"
                   value={t.artist}
                   onChange={(e) => setTrack(i, "artist", e.target.value)}

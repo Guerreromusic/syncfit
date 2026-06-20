@@ -16,6 +16,7 @@
 import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
+import { randomBytes } from "crypto";
 import { list, put, del } from "@vercel/blob";
 import type { AnalyzeResult, Brief, PitchProject, SavedReport } from "./types";
 
@@ -180,11 +181,11 @@ function makeId(): string {
   return `sf_${Date.now().toString(36)}${rand}`;
 }
 
-/** Short, URL-safe, hard-to-guess token for a public pitch-share link. */
+/** Cryptographically-strong, URL-safe token for a public pitch-share link.
+ *  This token is the SOLE access control for the unauthenticated /share pages,
+ *  so it must not be guessable — hence a CSPRNG, not Math.random(). */
 function makeShareToken(): string {
-  const a = Math.random().toString(36).slice(2, 10);
-  const b = Math.random().toString(36).slice(2, 10);
-  return `pt_${a}${b}`;
+  return `pt_${randomBytes(16).toString("base64url")}`;
 }
 
 /**
@@ -394,6 +395,9 @@ export async function setProjectShared(id: string): Promise<PitchProject | null>
     const all = await readAllProjects();
     const idx = all.findIndex((p) => p.id === id);
     if (idx === -1) return null;
+    // Don't mint a public link for an archived project (defense-in-depth; the
+    // read path below also refuses archived projects).
+    if (all[idx].archived) return all[idx];
     if (!all[idx].shareToken) {
       all[idx] = { ...all[idx], shareToken: makeShareToken() };
       await writeAllProjects(all);
@@ -404,10 +408,16 @@ export async function setProjectShared(id: string): Promise<PitchProject | null>
   return run;
 }
 
+/**
+ * Look up a project by its public share token (for the unauthenticated
+ * /share/project route). Archived projects are NOT served — archiving revokes
+ * the public link, matching getReportByToken so archive==revoke is consistent
+ * across every access path.
+ */
 export async function getProjectByToken(token: string): Promise<PitchProject | null> {
   if (!token) return null;
   const all = await readAllProjects();
-  return all.find((p) => p.shareToken === token) ?? null;
+  return all.find((p) => p.shareToken === token && !p.archived) ?? null;
 }
 
 /**
