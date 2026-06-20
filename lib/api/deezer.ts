@@ -11,8 +11,18 @@ import {
   type PreviewDetail,
   scoreMatch,
   isConfident,
+  buildPreviewQueries,
 } from "./itunes";
 import { fetchWithTimeout } from "../fetchWithTimeout";
+
+/** One Deezer search pass — returns the raw results array (never throws). */
+async function deezerSearch(term: string): Promise<any[]> {
+  const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=10`;
+  const res = await fetchWithTimeout(url, { cache: "no-store" }, 8000);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return Array.isArray(json?.data) ? json.data : [];
+}
 
 export async function getDeezerPreview(
   title: string,
@@ -20,12 +30,20 @@ export async function getDeezerPreview(
 ): Promise<PreviewDetail | null> {
   if (!title.trim()) return null;
   try {
-    const q = encodeURIComponent(`${title} ${artist}`.trim());
-    const url = `https://api.deezer.com/search?q=${q}&limit=10`;
-    const res = await fetchWithTimeout(url, { cache: "no-store" }, 8000);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const results: any[] = Array.isArray(json?.data) ? json.data : [];
+    // Progressively-looser queries; stop at the first that has a PLAYABLE result
+    // so near-miss title/artist strings still resolve to a preview.
+    let results: any[] = [];
+    let artworkPool: any[] = [];
+    for (const term of buildPreviewQueries(title, artist)) {
+      const r = await deezerSearch(term);
+      if (!r.length) continue;
+      if (!artworkPool.length) artworkPool = r;
+      if (r.some((x) => typeof x?.preview === "string" && x.preview)) {
+        results = r;
+        break;
+      }
+    }
+    if (!results.length) results = artworkPool;
     if (!results.length) return null;
 
     const playable = results.filter(

@@ -67,6 +67,31 @@ export function isConfident(
   return titleOk && artistOk;
 }
 
+/** Strip decorations that throw off catalogue search: parenth/bracket content,
+ *  "feat …", and "- Remastered/Live/Version …" suffixes. */
+export function simplifyTitle(s: string): string {
+  return s
+    .replace(/\(.*?\)|\[.*?\]/g, " ")
+    .replace(/\s*-\s*(remaster|remastered|live|mono|stereo|version|edit|mix|deluxe|radio|single|album)\b.*$/i, " ")
+    .replace(/\bfeat\.?\b.*$/i, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/** Ordered, de-duplicated search terms to try, most → least specific, so a track
+ *  whose exact "title artist" string misses still surfaces a playable preview. */
+export function buildPreviewQueries(title: string, artist: string): string[] {
+  const t = title.trim();
+  const a = artist.trim();
+  const st = simplifyTitle(t);
+  const out = [
+    a ? `${t} ${a}` : t, // exact title + artist
+    a && st && st !== t ? `${st} ${a}` : "", // simplified title + artist
+    st || t, // title only — last resort; scoreMatch still ranks by artist
+  ].filter(Boolean);
+  return Array.from(new Set(out));
+}
+
 /**
  * Confirm a track actually exists by matching it in the iTunes catalogue, and
  * return its CANONICAL title/artist + artwork. Returns null when the track isn't
@@ -91,20 +116,38 @@ export async function verifyTrack(
   }
 }
 
+/** One iTunes search pass — returns the raw results array (never throws). */
+async function itunesSearch(term: string): Promise<any[]> {
+  const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
+    term,
+  )}&entity=song&media=music&limit=8`;
+  const res = await fetchWithTimeout(url, { cache: "no-store" }, 8000);
+  if (!res.ok) return [];
+  const json = await res.json();
+  return Array.isArray(json?.results) ? json.results : [];
+}
+
 export async function getItunesPreview(
   title: string,
   artist: string,
 ): Promise<PreviewDetail | null> {
   if (!title.trim()) return null;
   try {
-    const term = encodeURIComponent(`${title} ${artist}`.trim());
-    // Pull several candidates so we can pick one that ACTUALLY has a preview and
-    // best matches the song — `limit=1` frequently returns a no-preview or remix.
-    const url = `https://itunes.apple.com/search?term=${term}&entity=song&media=music&limit=8`;
-    const res = await fetchWithTimeout(url, { cache: "no-store" }, 8000);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const results: any[] = Array.isArray(json?.results) ? json.results : [];
+    // Try progressively-looser queries; stop at the first that yields a PLAYABLE
+    // candidate so a featuring credit / remaster suffix / slightly-off artist
+    // can't leave a real track unplayable. Falls back to any result for artwork.
+    let results: any[] = [];
+    let artworkPool: any[] = [];
+    for (const q of buildPreviewQueries(title, artist)) {
+      const r = await itunesSearch(q);
+      if (!r.length) continue;
+      if (!artworkPool.length) artworkPool = r;
+      if (r.some((x) => typeof x?.previewUrl === "string" && x.previewUrl)) {
+        results = r;
+        break;
+      }
+    }
+    if (!results.length) results = artworkPool;
     if (!results.length) return null;
 
     const playable = results.filter(
