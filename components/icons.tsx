@@ -155,6 +155,14 @@ export const MegaphoneIcon = (props: IconProps) => (
   </svg>
 );
 
+// Chat bot — speech bubble with three dots (the section assistant launcher).
+export const ChatBotIcon = (props: IconProps) => (
+  <svg {...base(props)}>
+    <path d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z" />
+    <path d="M8 10.5h.01M12 10.5h.01M16 10.5h.01" />
+  </svg>
+);
+
 // Close — X.
 export const CloseIcon = (props: IconProps) => (
   <svg {...base(props)}>

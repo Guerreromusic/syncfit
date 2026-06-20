@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
-import { SparkIcon, ArrowRightIcon, CloseIcon } from "./icons";
+import { SparkIcon, ArrowRightIcon, CloseIcon, ChatBotIcon } from "./icons";
 
 type Msg = { role: "user" | "assistant"; content: string };
 
@@ -122,7 +122,7 @@ export function SectionChat() {
         title={`Ask about ${sec.name}`}
         className="sf-liquid fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-white/10 text-lime-300 shadow-2xl shadow-black/40 transition hover:scale-105"
       >
-        {open ? <CloseIcon /> : <SparkIcon className="h-5 w-5" aria-hidden />}
+        {open ? <CloseIcon /> : <ChatBotIcon className="h-5 w-5" aria-hidden />}
       </button>
 
       {/* Panel */}
