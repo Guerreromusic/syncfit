@@ -448,7 +448,7 @@ function EmptyState() {
     <div className="flex h-full flex-col items-center justify-center text-center">
       <h2 className="text-2xl font-bold text-white sm:text-3xl">What are you scoring for sync?</h2>
       <p className="mt-2 max-w-md text-sm text-soft">
-        Describe a placement, or paste a Spotify link to score a song.
+        Describe a placement, paste a Spotify link, or attach a PDF/Word brief.
       </p>
     </div>
   );

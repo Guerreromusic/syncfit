@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { usePathname } from "next/navigation";
 
 export type PlayerTrack = { id?: string; title: string; artist: string };
 
@@ -244,6 +245,15 @@ function FooterPlayer({
       a.muted = muted;
     }
   }, [vol, muted]);
+
+  // Never let a track keep playing onto a page the user navigated to: pause on
+  // every route change. Playback only ever resumes when the user presses play.
+  const pathname = usePathname();
+  React.useEffect(() => {
+    const a = audioRef.current;
+    if (a && !a.paused) a.pause();
+    setPlaying(false);
+  }, [pathname, setPlaying]);
 
   // Expose play/pause to the context so ANY play control can toggle this track.
   React.useEffect(() => {

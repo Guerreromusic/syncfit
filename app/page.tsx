@@ -5,6 +5,7 @@ import {
   ChartIcon,
   ClockIcon,
   WaveIcon,
+  RocketIcon,
 } from "@/components/icons";
 import { listReports } from "@/lib/storage";
 import { TrendingLatin } from "@/components/TrendingLatin";
@@ -65,21 +66,21 @@ export default async function HomePage() {
 
       {/* Hero — slim banner */}
       <section className="sf-card relative overflow-hidden">
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-4 px-6 py-5 sm:px-8">
+        <div className="relative z-10 flex flex-wrap items-center justify-between gap-x-6 gap-y-3 px-5 py-3.5 sm:px-6">
           <div className="min-w-0">
-            <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-0.5 text-[11px] font-medium text-soft">
-              <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
-              Musixmatch Musicathon · MVP
-            </span>
-            <h1 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+            <h1 className="text-lg font-bold tracking-tight text-white sm:text-xl">
               SyncFit <span className="text-soft">by Synclat</span>
             </h1>
-            <p className="mt-1 text-sm text-soft">
+            <p className="text-xs text-soft">
               Score, explain, and pitch tracks for global sync.
             </p>
           </div>
-          <div className="flex shrink-0 flex-wrap gap-3">
-            <Link href="/report" className="sf-btn-primary">
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            <Link href="/analyzer" className="sf-btn-primary">
+              <RocketIcon className="h-4 w-4" aria-hidden />
+              Deploy research
+            </Link>
+            <Link href="/report" className="sf-btn-white">
               View reports
               <ArrowRightIcon className="h-4 w-4" aria-hidden />
             </Link>
