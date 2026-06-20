@@ -25,12 +25,6 @@ export const NAV = [
     desc: "Deploy research on a brief to surface the 10 best-fitting tracks — or score one you name.",
   },
   {
-    href: "/starred",
-    label: "Starred",
-    icon: StarIcon,
-    desc: "Tracks you saved from research — play them or send one back to score.",
-  },
-  {
     href: "/report",
     label: "Score reports",
     icon: DocIcon,
@@ -47,6 +41,12 @@ export const NAV = [
     label: "Track Arena",
     icon: TrophyIcon,
     desc: "Benchmark up to 3 tracks head-to-head against one brief.",
+  },
+  {
+    href: "/starred",
+    label: "Starred",
+    icon: StarIcon,
+    desc: "Tracks you saved from research — play them or send one back to score.",
   },
   {
     href: "/info",
