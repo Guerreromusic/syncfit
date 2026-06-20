@@ -76,9 +76,9 @@ export const SCORE_MODEL: ScoreCategory[] = [
   },
   {
     key: "audioReadiness",
-    label: "Audio Readiness",
+    label: "Production Fit",
     max: 5,
-    description: "Stem/dialogue suitability (LALAL.AI, when available).",
+    description: "Overall sonic / production suitability for the placement.",
   },
 ];
 
@@ -279,6 +279,8 @@ export function heuristicAnalysis(input: {
   ];
 
   return {
+    briefName: buildBriefName(brief),
+    brand: detectBrand(brief.brief),
     syncFitScore,
     scoreLabel,
     breakdown,
@@ -288,6 +290,53 @@ export function heuristicAnalysis(input: {
     supervisorNotes,
     suggestedAlternatives: [], // populated by AI layer; placeholder in demo mode
   };
+}
+
+// Demo-mode brand detection: a small map of well-known brands → domain. The AI
+// layer does this far more broadly; this is just the keyless demo fallback.
+const KNOWN_BRANDS: { re: RegExp; name: string; domain: string; blurb: string }[] = [
+  { re: /\bnike\b/i, name: "Nike", domain: "nike.com", blurb: "Global sportswear & athletic footwear brand." },
+  { re: /\badidas\b/i, name: "Adidas", domain: "adidas.com", blurb: "German sportswear & athletic apparel maker." },
+  { re: /\bpuma\b/i, name: "Puma", domain: "puma.com", blurb: "Athletic and casual footwear & apparel brand." },
+  { re: /\bcoca[- ]?cola|\bcoke\b/i, name: "Coca-Cola", domain: "coca-cola.com", blurb: "World's largest soft-drink & beverage company." },
+  { re: /\bpepsi\b/i, name: "Pepsi", domain: "pepsi.com", blurb: "Global soft-drink and snack-food brand." },
+  { re: /\bred bull\b/i, name: "Red Bull", domain: "redbull.com", blurb: "Energy-drink brand and extreme-sports marketer." },
+  { re: /\bapple\b/i, name: "Apple", domain: "apple.com", blurb: "Consumer electronics, software & services maker." },
+  { re: /\bsamsung\b/i, name: "Samsung", domain: "samsung.com", blurb: "Global electronics & mobile-device manufacturer." },
+  { re: /\bgoogle\b/i, name: "Google", domain: "google.com", blurb: "Search, ads, and consumer-tech giant." },
+  { re: /\bspotify\b/i, name: "Spotify", domain: "spotify.com", blurb: "Music & podcast streaming platform." },
+  { re: /\bmcdonald'?s\b/i, name: "McDonald's", domain: "mcdonalds.com", blurb: "World's largest fast-food restaurant chain." },
+  { re: /\bheineken\b/i, name: "Heineken", domain: "heineken.com", blurb: "International beer & cider brewing company." },
+  { re: /\bbmw\b/i, name: "BMW", domain: "bmw.com", blurb: "German luxury automobile manufacturer." },
+  { re: /\bmercedes\b/i, name: "Mercedes-Benz", domain: "mercedes-benz.com", blurb: "German luxury & performance car maker." },
+  { re: /\bgucci\b/i, name: "Gucci", domain: "gucci.com", blurb: "Italian luxury fashion & leather-goods house." },
+  { re: /\bnetflix\b/i, name: "Netflix", domain: "netflix.com", blurb: "Global streaming entertainment service." },
+];
+
+function detectBrand(
+  briefText: string,
+): { name: string; domain: string; blurb: string } | null {
+  if (!briefText) return null;
+  const hit = KNOWN_BRANDS.find((b) => b.re.test(briefText));
+  return hit ? { name: hit.name, domain: hit.domain, blurb: hit.blurb } : null;
+}
+
+/** Demo-mode brief name: first few meaningful words of the brief + project type. */
+function buildBriefName(brief: Brief): string {
+  const stop = new Set([
+    "a", "an", "the", "for", "of", "to", "and", "with", "in", "on", "that",
+    "this", "some", "very", "we", "need", "want", "looking", "track", "song",
+    "music", "something",
+  ]);
+  const words = (brief.brief || "")
+    .replace(/[^a-zA-Z0-9\s-]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w && !stop.has(w.toLowerCase()))
+    .slice(0, 3)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+  const base = words.join(" ").trim();
+  if (base) return `${base} ${brief.projectType}`.trim();
+  return `${brief.projectType} Brief`;
 }
 
 function buildBestUseCases(brief: Brief): string[] {

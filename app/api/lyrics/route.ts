@@ -6,6 +6,7 @@ import { getTrackLyricsContext } from "@/lib/api/musixmatch";
 import { runLyricTranslation } from "@/lib/api/openrouter";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60; // Musixmatch lyric fetch + LLM translation/analysis.
 
 export async function POST(req: Request) {
   let body: { trackId?: string; brief?: string; target?: string };
@@ -30,10 +31,15 @@ export async function POST(req: Request) {
     return NextResponse.json({ available: false });
   }
 
-  // Translate + extract brief-matching keywords (best-effort).
+  // Translate, analyse the lyric, and explain brief-matching keywords (best-effort).
   let translation = "";
   let sourceLang = "Unknown";
   let keywords: string[] = [];
+  let matches: { phrase: string; meaning: string; why: string }[] = [];
+  let matchSummary = "";
+  let mood = "";
+  let themes: string[] = [];
+  let analysis = "";
   try {
     const t = await runLyricTranslation({
       snippet,
@@ -43,6 +49,11 @@ export async function POST(req: Request) {
     translation = t.translation;
     sourceLang = t.sourceLang;
     keywords = t.keywords;
+    matches = t.matches;
+    matchSummary = t.matchSummary;
+    mood = t.mood;
+    themes = t.themes;
+    analysis = t.analysis;
   } catch {
     // No AI / failed — still return the original snippet (untranslated).
   }
@@ -53,5 +64,10 @@ export async function POST(req: Request) {
     translation,
     sourceLang,
     keywords,
+    matches,
+    matchSummary,
+    mood,
+    themes,
+    analysis,
   });
 }

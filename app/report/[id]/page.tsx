@@ -5,7 +5,11 @@ import { ReportCard } from "@/components/ReportCard";
 import { ArchiveButton } from "@/components/ArchiveButton";
 import { AddToArenaButton } from "@/components/AddToArenaButton";
 import { LyricTranslationCard } from "@/components/LyricTranslationCard";
-import { ArrowRightIcon } from "@/components/icons";
+import { BrandDNACard } from "@/components/BrandDNACard";
+import { AskAI } from "@/components/AskAI";
+import { SuggestedAlternatives } from "@/components/SuggestedAlternatives";
+import { ArrowRightIcon, MegaphoneIcon } from "@/components/icons";
+import type { TrackQAContext } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -17,27 +21,40 @@ export default async function ReportDetailPage({
   const report = await getReport(params.id);
   if (!report) notFound();
 
+  const qaContext: TrackQAContext = {
+    title: report.track.title,
+    artist: report.track.artist,
+    brief: report.brief.brief,
+    language: report.track.language,
+    genre: report.track.genre,
+    syncFitScore: report.analysis.syncFitScore,
+    scoreLabel: report.analysis.scoreLabel,
+    brandSafety: report.analysis.brandSafety.level,
+    bestUse: report.analysis.bestUseCases?.[0],
+    pitchSummary: report.analysis.pitchSummary,
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href="/report"
           className="text-sm text-soft transition hover:text-white"
         >
-          ← All reports
+          ← Score reports
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <AddToArenaButton
             brief={report.brief.brief}
             title={report.track.title}
             artist={report.track.artist}
-            className="rounded-xl border border-white/15 bg-white/[0.03] px-3.5 py-2 text-sm font-semibold text-soft transition hover:border-purple-400/50 hover:text-white aria-pressed:border-lime-500/40 aria-pressed:bg-lime-500/10 aria-pressed:text-lime-300"
+            iconOnly
           />
-          <ArchiveButton
-            id={report.id}
-            archived={Boolean(report.archived)}
-            className="rounded-xl border border-white/15 bg-white/[0.03] px-3.5 py-2 text-sm font-semibold text-soft transition hover:border-purple-400/50 hover:text-white disabled:opacity-50"
-          />
+          <ArchiveButton id={report.id} archived={Boolean(report.archived)} iconOnly />
+          <Link href={`/projects/pitch/${report.id}`} className="sf-btn-secondary">
+            <MegaphoneIcon className="h-4 w-4" aria-hidden />
+            Pitch
+          </Link>
           <Link href="/arena" className="sf-btn-secondary">
             Track Arena
             <ArrowRightIcon className="h-4 w-4" />
@@ -45,9 +62,31 @@ export default async function ReportDetailPage({
         </div>
       </div>
 
-      <ReportCard report={report} />
+      <ReportCard report={report} editableId={report.id} />
+
+      {/* Natural-language Q&A — ask anything about the score / research */}
+      <div className="sf-card sf-card-pad">
+        <p className="sf-eyebrow mb-1">Ask about this research</p>
+        <p className="mb-3 text-sm text-soft">
+          Ask anything about the SyncFit score, why it fits the brief, brand
+          safety, or this track — in plain language.
+        </p>
+        <AskAI context={qaContext} label="Ask a question" />
+      </div>
 
       <LyricTranslationCard trackId={report.track.trackId} brief={report.brief.brief} />
+
+      <BrandDNACard
+        trackId={report.track.trackId}
+        title={report.track.title}
+        artist={report.track.artist}
+      />
+
+      {/* Suggested tracks — at the very end */}
+      <SuggestedAlternatives
+        alternatives={report.analysis.suggestedAlternatives}
+        brief={report.brief}
+      />
 
       <p className="pb-4 text-center text-xs text-soft">
         SyncFit by Synclat · Compliance: only short lyric context (never full

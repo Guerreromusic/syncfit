@@ -6,12 +6,7 @@
 // reproduce full lyrics, and ALWAYS return valid JSON matching SyncFitAnalysis.
 // =============================================================================
 
-import type {
-  AudioReadiness,
-  Brief,
-  MarketSignal,
-  NormalizedTrack,
-} from "../types";
+import type { Brief, MarketSignal, NormalizedTrack } from "../types";
 import { SCORE_MODEL } from "../scoring";
 
 export const SYNCFIT_SYSTEM_PROMPT = `You are SyncFit, Synclat's AI sync-fit engine for Latin music.
@@ -27,13 +22,15 @@ The breakdown values MUST sum to syncFitScore, and syncFitScore MUST be between 
 
 scoreLabel bands: 0-49 = "Weak Fit", 50-69 = "Possible Fit", 70-84 = "Strong Fit", 85-100 = "Excellent Fit".
 
-If Songstats market signal is "Unknown" (not configured), keep Market Signal low (around 4/10) and note it is not included. If LALAL.AI audio readiness is "Unknown" (not configured), keep Audio Readiness low (around 2/5) and note it is not included.
+If Songstats market signal is "Unknown" (not configured), keep Market Signal low (around 4/10) and note it is not included. If audio readiness is "Unknown" (not available), keep Audio Readiness low (around 2/5) and note it is not included.
 
 OUTPUT RULES (critical):
 - Respond with a SINGLE valid JSON object and NOTHING else. No markdown, no code fences, no commentary.
 - The JSON MUST match this TypeScript type exactly:
 
 {
+  "briefName": string,                    // 2-4 word Title Case name for the BRIEF/placement (never the song), e.g. "Summer Beer Campaign", "Indie Road-Trip Film"
+  "brand": { "name": string, "domain": string, "blurb": string } | null,  // ONLY if a real brand/company is explicitly named in the brief. domain = primary website like "nike.com". blurb = ONE short sentence on what the company does (e.g. "Global sportswear & athletic footwear brand."). Otherwise null. Do NOT guess a brand that isn't clearly named.
   "syncFitScore": number,                 // 0-100, equals the sum of breakdown
   "scoreLabel": "Weak Fit" | "Possible Fit" | "Strong Fit" | "Excellent Fit",
   "breakdown": {
@@ -64,9 +61,8 @@ export function buildSyncFitUserPrompt(args: {
   brief: Brief;
   track: NormalizedTrack;
   marketSignal: MarketSignal;
-  audioReadiness: AudioReadiness;
 }): string {
-  const { brief, track, marketSignal, audioReadiness } = args;
+  const { brief, track, marketSignal } = args;
 
   const trackBlock = {
     title: track.title,
@@ -76,6 +72,12 @@ export function buildSyncFitUserPrompt(args: {
     explicit: track.explicit ?? "unknown",
     bpm: track.bpm ?? "unknown",
     genre: track.genre ?? "unknown",
+    genres: track.genres ?? undefined,
+    durationSec: track.durationSec ?? "unknown",
+    instrumental: track.instrumental ?? "unknown",
+    popularity: track.popularity ?? "unknown", // Musixmatch track rating 0-100
+    favourites: track.favourites ?? "unknown",
+    mood: track.mood ?? "unknown", // lyric mood/emotion when available
     // SHORT context only — provided so the model can reason about theme.
     // This is NOT full lyrics and must not be reproduced verbatim.
     lyricContext: track.lyricsContext ?? "not available",
@@ -97,9 +99,6 @@ ${JSON.stringify(trackBlock, null, 2)}
 OPTIONAL — MARKET SIGNAL (Songstats)
 ${JSON.stringify(marketSignal, null, 2)}
 
-OPTIONAL — AUDIO READINESS (LALAL.AI)
-${JSON.stringify(audioReadiness, null, 2)}
-
 TASK
-Score this track against the brief using the SyncFit scoring model. Return ONLY the JSON object described in the system prompt. Make bestUseCases specific to the project type and mood. In suggestedAlternatives, propose up to 3 plausible Latin tracks/styles that could also fit (clearly framed as suggestions, not verified catalog entries).`;
+Score this track against the brief using the SyncFit scoring model. Return ONLY the JSON object described in the system prompt. Make bestUseCases specific to the project type and mood. In suggestedAlternatives, propose up to 3 plausible real tracks/styles from ANY region or genre that could also fit (clearly framed as suggestions, not verified catalog entries).`;
 }

@@ -14,14 +14,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Near-black surfaces
+        // Warm dark-grey surfaces (Claude-style charcoal, not near-black)
         ink: {
-          950: "#07060B", // page background
-          900: "#0C0A12", // base
-          850: "#110E1A",
-          800: "#16121F", // card background
-          700: "#1E1930", // elevated card / borders
-          600: "#2A2440",
+          950: "#1c1b19", // page background
+          900: "#222220", // base
+          850: "#272624",
+          800: "#2c2b28", // card background
+          700: "#34332f", // elevated card / borders
+          600: "#403f3a",
         },
         // Deep purple accent
         purple: {
@@ -62,9 +62,9 @@ const config: Config = {
         lime: "0 8px 24px -8px rgba(190,242,100,0.4)",
       },
       backgroundImage: {
-        // Very subtle, flat canvas tint (Claude-like calm) — barely-there glow.
+        // Flat warm-grey canvas with a barely-there neutral top vignette (Claude-like).
         "purple-glow":
-          "radial-gradient(1100px 520px at 18% -12%, rgba(124,58,237,0.06), transparent 60%)",
+          "radial-gradient(1100px 520px at 50% -12%, rgba(255,255,255,0.02), transparent 60%)",
       },
       keyframes: {
         "fade-up": {

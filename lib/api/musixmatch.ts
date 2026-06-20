@@ -24,6 +24,7 @@
 
 import { env, isConfigured } from "../env";
 import { searchDemoTracks, getDemoTrack } from "../demo";
+import { fetchWithTimeout } from "../fetchWithTimeout";
 import type { NormalizedTrack } from "../types";
 
 const MUSIXMATCH_BASE = "https://api.musixmatch.com/ws/1.1";
@@ -39,9 +40,20 @@ export const MUSIXMATCH_ENDPOINTS = {
   // We only ever extract a SHORT context string — never the full lyric body.
   trackSnippet: "track.snippet.get",
   trackLyrics: "track.lyrics.get",
+  // Lyric mood/emotion (premium tiers only — 403 on free/dev, handled gracefully).
+  trackMood: "track.lyrics.mood.get",
 } as const;
 
 export type SearchTrackParams = { title?: string; artist?: string };
+
+type MxmGenreList = {
+  music_genre_list?: {
+    music_genre?: {
+      music_genre_name?: string;
+      music_genre_name_extended?: string;
+    };
+  }[];
+};
 
 /** A raw Musixmatch track node (only the fields we read). */
 type MxmTrack = {
@@ -52,8 +64,65 @@ type MxmTrack = {
   album_name?: string;
   explicit?: number;
   has_lyrics?: number;
-  primary_genres?: { music_genre_list?: { music_genre?: { music_genre_name?: string } }[] };
+  has_subtitles?: number;
+  has_richsync?: number;
+  instrumental?: number;
+  track_rating?: number;
+  track_length?: number;
+  num_favourite?: number;
+  track_isrc?: string;
+  commontrack_isrcs?: string[][] | string[];
+  track_spotify_id?: string;
+  album_coverart_500x500?: string;
+  album_coverart_350x350?: string;
+  album_coverart_800x800?: string;
+  track_lyrics_translation_options?: unknown;
+  // Language if the plan exposes it on the node.
+  track_language?: string;
+  language?: string;
+  primary_genres?: MxmGenreList;
+  secondary_genres?: MxmGenreList;
 };
+
+/** Collect genre display names (extended where available) from a genre list. */
+function genreNames(...lists: (MxmGenreList | undefined)[]): string[] {
+  const out: string[] = [];
+  for (const list of lists) {
+    for (const entry of list?.music_genre_list ?? []) {
+      const g = entry.music_genre;
+      const name = g?.music_genre_name_extended || g?.music_genre_name;
+      if (name && !out.includes(name)) out.push(name);
+    }
+  }
+  return out;
+}
+
+/** First ISRC from either the track_isrc field or the commontrack_isrcs matrix. */
+function firstIsrc(t: MxmTrack): string | undefined {
+  if (t.track_isrc && t.track_isrc.trim()) return t.track_isrc.trim();
+  const flat = (t.commontrack_isrcs ?? []).flat?.() ?? [];
+  const found = (flat as string[]).find((x) => typeof x === "string" && x.trim());
+  return found?.trim() || undefined;
+}
+
+// ISO 639-1 language codes → display names (covers the languages SyncFit sees).
+const LANGUAGE_NAMES: Record<string, string> = {
+  es: "Spanish",
+  en: "English",
+  pt: "Portuguese",
+  fr: "French",
+  it: "Italian",
+  de: "German",
+  ca: "Catalan",
+  gl: "Galician",
+};
+
+function langName(code?: string): string | undefined {
+  if (!code) return undefined;
+  const c = code.trim().toLowerCase();
+  if (!c) return undefined;
+  return LANGUAGE_NAMES[c] ?? code.toUpperCase();
+}
 
 /** Build a Musixmatch URL with the API key + params. */
 function mxmUrl(endpoint: string, params: Record<string, string | number | undefined>): string {
@@ -70,25 +139,136 @@ function mxmUrl(endpoint: string, params: Record<string, string | number | undef
 
 /** Map a raw Musixmatch track to our NormalizedTrack (no lyrics stored). */
 function normalizeMxmTrack(t: MxmTrack, lyricsContext?: string): NormalizedTrack {
-  const genre =
-    t.primary_genres?.music_genre_list?.[0]?.music_genre?.music_genre_name;
+  const genres = genreNames(t.primary_genres, t.secondary_genres);
+  // track_lyrics_translation_options is sometimes an array, sometimes an object,
+  // sometimes absent — normalize all three to a string[] of language codes.
+  const transRaw = t.track_lyrics_translation_options;
+  const transList: unknown[] = Array.isArray(transRaw)
+    ? transRaw
+    : transRaw && typeof transRaw === "object"
+      ? Object.values(transRaw as Record<string, unknown>)
+      : [];
+  const translationOptions = transList
+    .map((o) =>
+      typeof o === "string"
+        ? o
+        : (o as { language?: string; selected_language?: string })?.language ??
+          (o as { selected_language?: string })?.selected_language,
+    )
+    .filter((x): x is string => Boolean(x));
+  const num = (v: unknown): number | undefined =>
+    typeof v === "number" && Number.isFinite(v) ? v : undefined;
+  const flag = (v: unknown): boolean | undefined =>
+    typeof v === "number" ? v === 1 : undefined;
+
   return {
     trackId: String(t.commontrack_id ?? t.track_id ?? ""),
     title: t.track_name ?? "Unknown title",
     artist: t.artist_name ?? "Unknown artist",
     album: t.album_name || undefined,
-    explicit: typeof t.explicit === "number" ? t.explicit === 1 : undefined,
-    genre: genre || undefined,
-    // language/bpm are not in the basic track payload; left undefined unless a
-    // plan/endpoint provides them. lyricsContext is short-only and in-memory.
+    explicit: flag(t.explicit),
+    genre: genres[0],
+    genres: genres.length ? genres : undefined,
+    // Language is read from the node here; enrichTrackMetadata() resolves it from
+    // the lyrics endpoint when the node omits it.
+    language: langName(t.track_language ?? t.language),
+    popularity: num(t.track_rating),
+    durationSec: num(t.track_length),
+    instrumental: flag(t.instrumental),
+    isrc: firstIsrc(t),
+    spotifyId: t.track_spotify_id || undefined,
+    artworkUrl:
+      t.album_coverart_500x500 ||
+      t.album_coverart_350x350 ||
+      t.album_coverart_800x800 ||
+      undefined,
+    favourites: num(t.num_favourite),
+    hasLyrics: flag(t.has_lyrics),
+    hasSubtitles: flag(t.has_subtitles),
+    hasRichsync: flag(t.has_richsync),
+    translationOptions: translationOptions.length ? translationOptions : undefined,
     lyricsContext: lyricsContext || undefined,
     source: "musixmatch",
   };
 }
 
+/**
+ * Best-effort lyric mood/emotion (premium endpoint). Returns null on free/dev
+ * plans (403) or any error — never throws, never blocks the analysis.
+ */
+async function getTrackMood(
+  trackId: string,
+): Promise<NormalizedTrack["mood"]> {
+  try {
+    const body = await mxmGet(
+      mxmUrl(MUSIXMATCH_ENDPOINTS.trackMood, { commontrack_id: trackId }),
+    );
+    const mood = body?.mood_list?.[0] ?? body?.mood;
+    const label: string | undefined =
+      mood?.label || body?.mood_list?.[0]?.label || undefined;
+    const valence = body?.raw_data?.valence ?? mood?.valence;
+    const arousal = body?.raw_data?.arousal ?? mood?.arousal;
+    if (!label && valence == null && arousal == null) return null;
+    return {
+      label,
+      valence: typeof valence === "number" ? valence : undefined,
+      arousal: typeof arousal === "number" ? arousal : undefined,
+    };
+  } catch {
+    return null; // not on this plan — silently skip.
+  }
+}
+
+/**
+ * Resolve the track's LANGUAGE when the basic search/get payload omits it —
+ * first from track.get (track_language), then from the lyrics endpoint
+ * (lyrics_language). Best-effort and resilient.
+ *
+ * V1 SCOPE: Musixmatch supplies language / explicit / genre only. BPM and artist
+ * origin are NOT sourced here (BPM comes from the Spotify fallback).
+ */
+export async function enrichTrackMetadata(
+  track: NormalizedTrack,
+): Promise<NormalizedTrack> {
+  if (track.source !== "musixmatch" || !isConfigured.musixmatch() || !track.trackId) {
+    return track;
+  }
+
+  let language = track.language;
+
+  // 1) Resolve LANGUAGE when the search node omitted it: track.get first, then
+  //    the lyrics endpoint (lyrics_language). Skipped when already known.
+  if (!language) {
+    try {
+      const body = await mxmGet(
+        mxmUrl(MUSIXMATCH_ENDPOINTS.trackGet, { commontrack_id: track.trackId }),
+      );
+      const t: MxmTrack | undefined = body?.track;
+      if (t) language = langName(t.track_language ?? t.language);
+    } catch {
+      // track.get unavailable — continue.
+    }
+    if (!language) {
+      try {
+        const body = await mxmGet(
+          mxmUrl(MUSIXMATCH_ENDPOINTS.trackLyrics, { commontrack_id: track.trackId }),
+        );
+        language = langName(body?.lyrics?.lyrics_language);
+      } catch {
+        // No lyric access on this plan — language stays undefined.
+      }
+    }
+  }
+
+  // 2) Lyric mood/emotion — best-effort (premium; null on free/dev plans).
+  const mood = await getTrackMood(track.trackId);
+
+  return { ...track, language, mood };
+}
+
 async function mxmGet(url: string): Promise<any> {
   // No-store: never cache Musixmatch responses (compliance + freshness).
-  const res = await fetch(url, { cache: "no-store" });
+  const res = await fetchWithTimeout(url, { cache: "no-store" }, 10000);
   if (!res.ok) {
     throw new Error(`Musixmatch HTTP ${res.status}`);
   }
@@ -114,7 +294,9 @@ export async function searchTrack(
   const url = mxmUrl(MUSIXMATCH_ENDPOINTS.trackSearch, {
     q_track: params.title,
     q_artist: params.artist,
-    page_size: 8,
+    // Wider candidate pool so the caller can match the EXACT track, not just the
+    // most popular hit.
+    page_size: 15,
     page: 1,
     s_track_rating: "desc",
   });

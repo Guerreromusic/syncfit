@@ -1,9 +1,24 @@
-// GET /api/reports/[id]   — fetch a single saved demo report.
-// PATCH /api/reports/[id] — archive/restore a report ({ archived: boolean }).
+// GET /api/reports/[id]    — fetch a single saved demo report.
+// PATCH /api/reports/[id]  — archive/restore ({ archived: boolean }) or rename
+//                            the AI brief name ({ name: string }).
+// DELETE /api/reports/[id] — permanently delete the report (and scrub it from projects).
 import { NextResponse } from "next/server";
-import { getReport, setReportArchived } from "@/lib/storage";
+import {
+  getReport,
+  setReportArchived,
+  setReportName,
+  deleteReport,
+} from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: { id: string } },
+) {
+  await deleteReport(params.id);
+  return NextResponse.json({ ok: true });
+}
 
 export async function GET(
   _req: Request,
@@ -20,21 +35,33 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: { archived?: unknown };
+  let body: { archived?: unknown; name?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
   }
-  if (typeof body.archived !== "boolean") {
-    return NextResponse.json(
-      { error: "Body must include `archived` (boolean)." },
-      { status: 400 },
-    );
+
+  // Rename (editable AI brief name).
+  if (typeof body.name === "string") {
+    const report = await setReportName(params.id, body.name);
+    if (!report) {
+      return NextResponse.json({ error: "Report not found." }, { status: 404 });
+    }
+    return NextResponse.json({ report });
   }
-  const report = await setReportArchived(params.id, body.archived);
-  if (!report) {
-    return NextResponse.json({ error: "Report not found." }, { status: 404 });
+
+  // Archive / restore.
+  if (typeof body.archived === "boolean") {
+    const report = await setReportArchived(params.id, body.archived);
+    if (!report) {
+      return NextResponse.json({ error: "Report not found." }, { status: 404 });
+    }
+    return NextResponse.json({ report });
   }
-  return NextResponse.json({ report });
+
+  return NextResponse.json(
+    { error: "Body must include `name` (string) or `archived` (boolean)." },
+    { status: 400 },
+  );
 }

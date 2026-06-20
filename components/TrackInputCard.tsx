@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { StepHeader } from "./StepHeader";
 
 export type TrackInput = {
   title: string;
@@ -11,8 +10,10 @@ export type TrackInput = {
 };
 
 /**
- * Track input for the single-run flow. No separate "Search" button — Run SyncFit
- * does the Musixmatch lookup server-side as part of the one request.
+ * Optional track input, collapsed into a dropdown so the Research console stays
+ * focused on the brief. Expand it to score a specific song instead of running
+ * open-ended discovery. No "Search" button — Run does the Musixmatch lookup
+ * server-side as part of the one request.
  */
 export function TrackInputCard({
   input,
@@ -24,15 +25,31 @@ export function TrackInputCard({
   /** Render without the card shell (for use inside a single glass card). */
   bare?: boolean;
 }) {
-  return (
-    <div className={bare ? "" : "sf-card sf-card-pad"}>
-      <StepHeader
-        step={2}
-        title="Track (optional)"
-        subtitle="Name a song to score it — or leave blank and SyncFit finds the 10 best fits."
-      />
+  const hasValue = Boolean(
+    input.title.trim() || input.artist.trim() || input.trackId.trim(),
+  );
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+  return (
+    <details className={"group" + (bare ? "" : " sf-card sf-card-pad")} open={hasValue}>
+      <summary className="flex cursor-pointer list-none select-none items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold leading-tight text-white">
+            Name a specific track{" "}
+            <span className="font-normal text-soft">(optional)</span>
+          </h2>
+          <p className="text-xs text-soft">
+            Leave closed to discover the 10 best fits — or open it to score one song.
+          </p>
+        </div>
+        <span
+          aria-hidden
+          className="shrink-0 rounded-lg border border-white/10 px-2 py-1 text-[11px] font-medium text-soft transition-transform duration-200 group-open:rotate-180"
+        >
+          ▾
+        </span>
+      </summary>
+
+      <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="block">
           <span className="sf-label">Song title</span>
           <input
@@ -53,9 +70,9 @@ export function TrackInputCard({
         </label>
       </div>
 
-      {/* Optional fields tucked away to keep the form minimal */}
-      <details className="group mt-3">
-        <summary className="cursor-pointer select-none text-xs font-medium text-soft transition hover:text-white">
+      {/* Advanced fields tucked away to keep the form minimal */}
+      <details className="group/adv mt-3">
+        <summary className="cursor-pointer select-none list-none text-xs font-medium text-soft transition hover:text-white">
           Advanced — Musixmatch track ID &amp; preview URL
         </summary>
         <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -79,6 +96,6 @@ export function TrackInputCard({
           </label>
         </div>
       </details>
-    </div>
+    </details>
   );
 }

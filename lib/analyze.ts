@@ -4,7 +4,7 @@
 // Ties the adapters together for a single analyze request:
 //   Musixmatch (metadata + short lyric context)  → required
 //   Songstats (market signal)                    → optional
-//   LALAL.AI (audio readiness)                   → optional
+//   MusicBrainz (credits & rights)               → optional
 //   OpenRouter (AI reasoning) OR local heuristic  → required (heuristic in demo)
 //
 // Runs SERVER-SIDE only (called from /app/api/analyze).
@@ -14,10 +14,13 @@ import {
   getTrackMetadata,
   getTrackLyricsContext,
   searchTrack,
+  enrichTrackMetadata,
 } from "./api/musixmatch";
 import { getDemoTrack } from "./demo";
 import { getMarketSignal } from "./api/songstats";
-import { getAudioReadiness } from "./api/lalal";
+import { getSpotifyMetadata } from "./api/spotify";
+import { verifyTrack, scoreMatch } from "./api/itunes";
+import { getTrackCredits } from "./api/musicbrainz";
 import { runSyncFitAnalysis, OpenRouterNotConfiguredError } from "./api/openrouter";
 import { heuristicAnalysis } from "./scoring";
 import { isConfigured, env } from "./env";
@@ -60,6 +63,16 @@ export async function analyze(input: AnalyzeInput): Promise<AnalyzeResult> {
     track = manualTrack(input.title, input.artist);
   }
 
+  // 1b) Enrich real Musixmatch tracks with the metadata the basic payload omits:
+  // BPM, lyric language, and the artist's origin country (best-effort, resilient).
+  if (track.source === "musixmatch") {
+    try {
+      track = await enrichTrackMetadata(track);
+    } catch {
+      // Enrichment is optional — proceed with the base metadata.
+    }
+  }
+
   // 2) Hydrate a SHORT lyric context for analysis ONLY (never stored/displayed).
   if (!track.lyricsContext) {
     if (track.source === "demo") {
@@ -77,11 +90,65 @@ export async function analyze(input: AnalyzeInput): Promise<AnalyzeResult> {
     // source === "manual": no lookup; analysis proceeds on the typed fields.
   }
 
-  // 3) Optional signals (parallel) — both return safe placeholders if missing.
-  const [marketSignal, audioReadiness] = await Promise.all([
-    getMarketSignal({ artist: track.artist, title: track.title }),
-    getAudioReadiness({ audioUrl: input.previewUrl }),
-  ]);
+  // 3) Market signal (Songstats) — safe placeholder if unavailable.
+  const marketSignal = await getMarketSignal({
+    artist: track.artist,
+    title: track.title,
+  });
+  const audioReadiness = {
+    instrumentalPotential: "Unknown" as const,
+    vocalDominance: "Unknown" as const,
+    dialogueFriendliness: "Unknown" as const,
+    summary: "",
+  };
+
+  // 3a) Musixmatch already returns album art + a Spotify id on the track node —
+  // use them when Songstats didn't, so covers + playback work from Musixmatch
+  // alone (no Songstats/Spotify key required).
+  if (!marketSignal.artworkUrl && track.artworkUrl)
+    marketSignal.artworkUrl = track.artworkUrl;
+  if (!marketSignal.spotifyTrackId && track.spotifyId)
+    marketSignal.spotifyTrackId = track.spotifyId;
+
+  // 3b) SPOTIFY FALLBACK — fill metadata Musixmatch + Songstats couldn't supply:
+  // BPM especially, plus artwork / genre / explicit and a playable Spotify id.
+  if (
+    isConfigured.spotify() &&
+    (track.bpm == null ||
+      !track.genre ||
+      track.explicit == null ||
+      !marketSignal.artworkUrl ||
+      !marketSignal.spotifyTrackId)
+  ) {
+    try {
+      const sp = await getSpotifyMetadata({
+        title: track.title,
+        artist: track.artist,
+        spotifyTrackId: marketSignal.spotifyTrackId,
+      });
+      if (track.bpm == null && sp.bpm != null) track = { ...track, bpm: sp.bpm };
+      if (!track.genre && sp.genre) track = { ...track, genre: sp.genre };
+      if (track.explicit == null && sp.explicit != null)
+        track = { ...track, explicit: sp.explicit };
+      if (!marketSignal.artworkUrl && sp.artworkUrl)
+        marketSignal.artworkUrl = sp.artworkUrl;
+      if (!marketSignal.spotifyTrackId && sp.spotifyTrackId)
+        marketSignal.spotifyTrackId = sp.spotifyTrackId;
+    } catch {
+      // Spotify fallback is optional — proceed with whatever we have.
+    }
+  }
+
+  // CREDITS & RIGHTS (MusicBrainz, keyless) — kicked off here so it runs IN
+  // PARALLEL with the AI call below (adds ~0 net latency). Not for demo tracks.
+  const creditsPromise =
+    track.source !== "demo"
+      ? getTrackCredits({
+          isrc: track.isrc,
+          title: track.title,
+          artist: track.artist,
+        }).catch(() => null)
+      : Promise.resolve(null);
 
   // ---- TASK 2 · OPENROUTER — AI reasoning (or local heuristic in demo) --------
   // Resolve the model once: validated UI choice, else env/default.
@@ -112,6 +179,27 @@ export async function analyze(input: AnalyzeInput): Promise<AnalyzeResult> {
     analysis = heuristicAnalysis({ brief, track, marketSignal, audioReadiness });
   }
 
+  // Verify suggested alternatives are REAL tracks: drop any the AI invented and
+  // canonicalize the title/artist to the real catalogue match (keyless iTunes).
+  if (analysis.suggestedAlternatives?.length) {
+    const checked = await Promise.all(
+      analysis.suggestedAlternatives.map(async (alt) => {
+        const real = await verifyTrack(alt.title, alt.artist);
+        return real ? { ...alt, title: real.title, artist: real.artist } : null;
+      }),
+    );
+    analysis = {
+      ...analysis,
+      suggestedAlternatives: checked.filter(
+        (a): a is NonNullable<typeof a> => a !== null,
+      ),
+    };
+  }
+
+  // Attach credits (resolved in parallel during the AI call).
+  const credits = await creditsPromise;
+  if (credits) track = { ...track, credits };
+
   // COMPLIANCE: strip the short lyric context before the result leaves the
   // server. lyricsContext is used in-memory ABOVE (prompt + heuristic) only and
   // must never cross the network boundary into the browser.
@@ -130,7 +218,6 @@ export async function analyze(input: AnalyzeInput): Promise<AnalyzeResult> {
       musixmatch: track.source !== "musixmatch" || !isConfigured.musixmatch(),
       openrouter: openrouterDemo,
       songstats: !isConfigured.songstats(),
-      lalal: !isConfigured.lalal() || !input.previewUrl,
     },
   };
 }
@@ -161,10 +248,19 @@ async function resolveTrackByName(
 ): Promise<NormalizedTrack> {
   try {
     const { tracks, demo } = await searchTrack({ title, artist });
-    const top = tracks[0];
-    if (top) {
-      const titleMatches = top.title.toLowerCase().includes(title.toLowerCase());
-      if (!demo || titleMatches) return top;
+    if (tracks.length) {
+      // Pick the BEST title+artist match across the results — not just the most
+      // popular top hit (which can be the wrong song when the exact one is less
+      // famous). Search returns multiple candidates; we score them all.
+      const best = tracks.reduce((a, b) =>
+        scoreMatch(b.title, b.artist, title, artist ?? "") >
+        scoreMatch(a.title, a.artist, title, artist ?? "")
+          ? b
+          : a,
+      );
+      const score = scoreMatch(best.title, best.artist, title, artist ?? "");
+      // Live: trust the best match. Demo: only accept a genuine title match.
+      if (!demo || score >= 3) return best;
     }
   } catch {
     // Fall through to a manual track — keep the single request resilient.

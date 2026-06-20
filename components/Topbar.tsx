@@ -8,17 +8,19 @@ import { NAV, isActive } from "./navItems";
 export function Topbar() {
   const pathname = usePathname();
 
+  // Hidden on public pitch-share pages (see Sidebar).
+  if (pathname.startsWith("/share")) return null;
+
   return (
-    <header className="sticky top-0 z-20 border-b border-white/[0.06] bg-ink-950/70 backdrop-blur-md">
-      {/* Top row */}
-      <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-12">
-        {/* Brand — mobile only; the sidebar carries it on desktop */}
-        <Link href="/" className="flex items-center lg:hidden">
+    <header className="sf-liquid sticky top-0 z-20 rounded-none border-x-0 border-t-0 border-b border-white/[0.06] lg:hidden">
+      {/* Top row — mobile/tablet only; desktop uses the sidebar, no top banner */}
+      <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
+        {/* Brand — the sidebar carries it on desktop */}
+        <Link href="/" className="flex items-center">
           <LogoImage className="h-6" />
         </Link>
 
-        {/* Quiet right-aligned context chip (desktop) */}
-        <span className="ml-auto hidden items-center gap-1.5 rounded-full border border-white/[0.07] px-3 py-1 text-xs font-medium text-soft lg:inline-flex">
+        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/[0.07] px-3 py-1 text-xs font-medium text-soft">
           <span className="h-1.5 w-1.5 rounded-full bg-lime-400" />
           Musixmatch Musicathon
         </span>

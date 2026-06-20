@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { PlusIcon, CheckIcon, TrophyIcon } from "./icons";
 
 export const ARENA_TRACKS_KEY = "syncfit:arena:tracks";
 export const ARENA_BRIEF_KEY = "syncfit:arena:brief";
@@ -28,11 +29,13 @@ export function AddToArenaButton({
   title,
   artist,
   className,
+  iconOnly = false,
 }: {
   brief: string;
   title: string;
   artist: string;
   className?: string;
+  iconOnly?: boolean;
 }) {
   const me = idOf({ title, artist });
   const [inArena, setInArena] = React.useState(false);
@@ -57,6 +60,33 @@ export function AddToArenaButton({
     setInArena(!exists);
   }
 
+  const label = inArena ? "In Arena" : "Add to Arena";
+  const icon = inArena ? (
+    <CheckIcon className="h-4 w-4" aria-hidden />
+  ) : (
+    <TrophyIcon className="h-4 w-4" aria-hidden />
+  );
+
+  if (iconOnly) {
+    return (
+      <button
+        type="button"
+        onClick={toggle}
+        aria-pressed={inArena}
+        aria-label={label}
+        title={inArena ? "Queued for Track Arena" : "Add this track to Track Arena"}
+        className={
+          "flex h-8 w-8 items-center justify-center rounded-full border transition " +
+          (inArena
+            ? "border-lime-500/40 bg-lime-500/10 text-lime-300"
+            : "border-white/15 bg-white/[0.03] text-soft hover:border-purple-400/50 hover:text-white")
+        }
+      >
+        {icon}
+      </button>
+    );
+  }
+
   return (
     <button
       type="button"
@@ -65,13 +95,18 @@ export function AddToArenaButton({
       title={inArena ? "Queued for Track Arena" : "Add this track to Track Arena"}
       className={
         className ||
-        "rounded-lg border px-3 py-1.5 text-xs font-semibold transition " +
+        "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition " +
           (inArena
             ? "border-lime-500/40 bg-lime-500/10 text-lime-300"
             : "border-white/15 bg-white/[0.03] text-soft hover:border-purple-400/50 hover:text-white")
       }
     >
-      {inArena ? "✓ In Arena" : "⚔ Add to Arena"}
+      {inArena ? (
+        <CheckIcon className="h-3.5 w-3.5" aria-hidden />
+      ) : (
+        <PlusIcon className="h-3.5 w-3.5" aria-hidden />
+      )}
+      {label}
     </button>
   );
 }

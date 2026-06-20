@@ -14,28 +14,22 @@ export type OpenRouterModelOption = {
   note?: string;
 };
 
-// The cheapest model from each major frontier brand (ChatGPT / Gemini / Claude),
-// cheapest first. Approx blended price per 1M tokens shown in `note`.
+// Cheap models only — no pricey tiers. GPT-5 mini is the default (good quality,
+// low cost); GPT-5 nano is the cheapest/fastest. Prices in/out per 1M tokens.
 export const OPENROUTER_MODELS: OpenRouterModelOption[] = [
+  {
+    id: "openai/gpt-5-mini",
+    label: "GPT-5 mini",
+    note: "Balanced · cheap · $0.25/$2",
+  },
   {
     id: "openai/gpt-5-nano",
     label: "GPT-5 nano",
-    note: "Cheapest ChatGPT · ~$0.45/1M",
-  },
-  {
-    id: "google/gemini-2.5-flash-lite",
-    label: "Gemini 2.5 Flash Lite",
-    note: "Cheapest Gemini · ~$0.50/1M",
-  },
-  {
-    id: "anthropic/claude-3-haiku",
-    label: "Claude 3 Haiku",
-    note: "Cheapest Claude · ~$1.50/1M",
+    note: "Fastest · cheapest · $0.05/$0.40",
   },
 ];
 
-// Cheapest model overall = default.
-export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-5-nano";
+export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-5-mini";
 
 /** Server-side guard: only let through a model we explicitly offer. */
 export function isAllowedModel(id: string | undefined | null): id is string {

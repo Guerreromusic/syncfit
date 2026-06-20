@@ -1,7 +1,22 @@
 "use client";
 
 import * as React from "react";
-import { WaveIcon } from "./icons";
+import { WaveIcon, SparkIcon } from "./icons";
+
+// Target languages the user can translate the lyric context into.
+const TARGET_LANGUAGES = [
+  "English",
+  "Spanish",
+  "Portuguese",
+  "French",
+  "Italian",
+  "German",
+  "Japanese",
+  "Korean",
+  "Mandarin Chinese",
+  "Arabic",
+  "Hindi",
+];
 
 function escapeRe(s: string): string {
   return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -9,7 +24,9 @@ function escapeRe(s: string): string {
 
 /** Highlight brief-matching keywords inside a text run. */
 function Highlighted({ text, keywords }: { text: string; keywords: string[] }) {
-  const kws = keywords.map((k) => k.trim()).filter((k) => k.length > 1);
+  const kws = Array.from(
+    new Set(keywords.map((k) => k.trim()).filter((k) => k.length > 1)),
+  );
   if (!text || kws.length === 0) return <>{text}</>;
   const re = new RegExp(`(${kws.map(escapeRe).join("|")})`, "gi");
   const parts = text.split(re);
@@ -31,18 +48,36 @@ function Highlighted({ text, keywords }: { text: string; keywords: string[] }) {
   );
 }
 
+function Spinner({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={(className ?? "h-3.5 w-3.5") + " animate-spin"} fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
+      <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+type LyricMatch = { phrase: string; meaning: string; why: string };
+
 type LyricData = {
   available: boolean;
   snippet?: string;
   translation?: string;
   sourceLang?: string;
   keywords?: string[];
+  matches?: LyricMatch[];
+  matchSummary?: string;
+  mood?: string;
+  themes?: string[];
+  analysis?: string;
 };
 
 /**
- * Live lyric CONTEXT + translation for the full report. Fetches a SHORT
- * Musixmatch snippet at view time, translates it, and highlights brief-matching
- * keywords. Nothing is stored — short context only, never full lyrics.
+ * Complete lyric CONTEXT + translation card. Fetches a SHORT Musixmatch snippet
+ * at view time, translates it into the user's chosen language (live, re-runs on
+ * change), highlights brief-matching phrases, and uses the AI model to explain
+ * what each highlight is and why it matches. Nothing is stored — short context
+ * only, never full lyrics.
  */
 export function LyricTranslationCard({
   trackId,
@@ -53,27 +88,35 @@ export function LyricTranslationCard({
 }) {
   const [data, setData] = React.useState<LyricData | null>(null);
   const [done, setDone] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
+  const [target, setTarget] = React.useState("English");
 
   React.useEffect(() => {
     let active = true;
+    setLoading(true);
     fetch("/api/lyrics", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trackId, brief }),
+      body: JSON.stringify({ trackId, brief, target }),
     })
       .then((r) => r.json())
       .then((d: LyricData) => {
         if (!active) return;
         setData(d);
         setDone(true);
+        setLoading(false);
       })
-      .catch(() => active && setDone(true));
+      .catch(() => {
+        if (!active) return;
+        setDone(true);
+        setLoading(false);
+      });
     return () => {
       active = false;
     };
-  }, [trackId, brief]);
+  }, [trackId, brief, target]);
 
-  // Loading skeleton
+  // Initial load skeleton
   if (!done) {
     return (
       <div className="sf-card sf-card-pad">
@@ -88,35 +131,137 @@ export function LyricTranslationCard({
   if (!data?.available || !data.snippet) return null;
 
   const keywords = data.keywords ?? [];
+  const matches = (data.matches ?? []).filter((m) => m.phrase);
+  const highlightTerms = Array.from(
+    new Set([...keywords, ...matches.map((m) => m.phrase)]),
+  );
 
   return (
     <div className="sf-card sf-card-pad">
-      <div className="mb-3 flex items-center gap-2">
+      <div className="mb-3 flex flex-wrap items-center gap-2">
         <WaveIcon className="h-5 w-5 text-purple-300" aria-hidden />
         <h3 className="text-sm font-semibold text-white">Lyric &amp; Translation</h3>
         {data.sourceLang && data.sourceLang !== "Unknown" && (
           <span className="sf-pill text-[10px]">{data.sourceLang}</span>
         )}
+
+        {/* Live translation-language selector */}
+        <label className="ml-auto flex items-center gap-1.5 text-[11px] text-soft">
+          Translate to
+          <select
+            value={target}
+            onChange={(e) => setTarget(e.target.value)}
+            className="rounded-lg border border-ink-600 bg-ink-900/70 px-2 py-1 text-xs font-medium text-white focus:border-purple-400/70 focus:outline-none"
+          >
+            {TARGET_LANGUAGES.map((l) => (
+              <option key={l} value={l} className="bg-ink-900 text-white">
+                {l}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
 
-      {/* Original short context */}
-      <p className="sf-eyebrow mb-1">Context</p>
-      <p className="text-sm leading-relaxed text-soft">
-        <Highlighted text={data.snippet} keywords={keywords} />
-      </p>
-
-      {/* English translation */}
-      {data.translation && (
-        <>
-          <p className="sf-eyebrow mb-1 mt-4">English translation</p>
-          <p className="text-sm leading-relaxed text-white">
-            <Highlighted text={data.translation} keywords={keywords} />
+      {/* Original context + translation */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <div>
+          <p className="sf-eyebrow mb-1">Original context</p>
+          <p className="text-sm leading-relaxed text-soft">
+            <Highlighted text={data.snippet} keywords={highlightTerms} />
           </p>
-        </>
+        </div>
+        <div className="lg:border-l lg:border-white/5 lg:pl-4">
+          <p className="sf-eyebrow mb-1 flex items-center gap-2">
+            {target} translation
+            {loading && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-purple-600/15 px-2 py-0.5 text-[10px] font-medium normal-case tracking-normal text-purple-100 ring-1 ring-inset ring-purple-500/25">
+                <Spinner className="h-3 w-3" />
+                Processing translation…
+              </span>
+            )}
+          </p>
+          <p
+            className={
+              "text-sm leading-relaxed text-white transition-opacity " +
+              (loading ? "opacity-40" : "opacity-100")
+            }
+          >
+            {data.translation ? (
+              <Highlighted text={data.translation} keywords={highlightTerms} />
+            ) : (
+              <span className="text-soft">Translation unavailable.</span>
+            )}
+          </p>
+        </div>
+      </div>
+
+      {/* Lyric analysis — what the Musixmatch lyric conveys, read by AI */}
+      {(data.analysis || (data.themes && data.themes.length > 0)) && (
+        <div className="mt-4 rounded-xl border border-white/10 bg-white/[0.02] p-4">
+          <div className="mb-2 flex flex-wrap items-center gap-2">
+            <WaveIcon className="h-4 w-4 text-purple-300" aria-hidden />
+            <p className="text-xs font-semibold uppercase tracking-wider text-purple-200">
+              Lyric analysis
+            </p>
+            {data.mood && (
+              <span className="rounded-full bg-purple-600/15 px-2.5 py-0.5 text-[10px] font-semibold text-purple-100 ring-1 ring-inset ring-purple-500/25">
+                {data.mood}
+              </span>
+            )}
+          </div>
+          {data.analysis && (
+            <p className="text-sm leading-relaxed text-soft">{data.analysis}</p>
+          )}
+          {data.themes && data.themes.length > 0 && (
+            <div className="mt-2.5 flex flex-wrap gap-1.5">
+              {data.themes.map((th, i) => (
+                <span
+                  key={i}
+                  className="rounded-full bg-white/[0.04] px-2.5 py-0.5 text-[11px] font-medium text-soft ring-1 ring-inset ring-white/10"
+                >
+                  {th}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
       )}
 
-      {/* Brief-matching keywords */}
-      {keywords.length > 0 && (
+      {/* Why it matches the brief — AI-explained highlights */}
+      {(data.matchSummary || matches.length > 0) && (
+        <div className="mt-4 rounded-xl border border-lime-500/15 bg-lime-500/[0.04] p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <SparkIcon className="h-4 w-4 text-lime-400" aria-hidden />
+            <p className="text-xs font-semibold uppercase tracking-wider text-lime-300">
+              Why it matches your brief
+            </p>
+          </div>
+
+          {data.matchSummary && (
+            <p className="text-sm leading-relaxed text-soft">{data.matchSummary}</p>
+          )}
+
+          {matches.length > 0 && (
+            <ul className="mt-3 space-y-2.5">
+              {matches.map((m, i) => (
+                <li key={i} className="flex gap-2.5">
+                  <span className="mt-0.5 shrink-0 rounded-md bg-lime-500/15 px-2 py-0.5 text-xs font-semibold text-lime-200 ring-1 ring-inset ring-lime-500/25">
+                    {m.phrase}
+                  </span>
+                  <p className="text-xs leading-relaxed text-soft">
+                    {m.meaning && <span className="text-white">{m.meaning}</span>}
+                    {m.meaning && m.why ? " — " : ""}
+                    {m.why}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Fallback: bare keyword chips when no explained matches */}
+      {matches.length === 0 && keywords.length > 0 && (
         <div className="mt-4">
           <p className="sf-eyebrow mb-2">Matches your brief</p>
           <div className="flex flex-wrap gap-1.5">
@@ -134,7 +279,7 @@ export function LyricTranslationCard({
 
       <p className="mt-4 text-[11px] text-soft">
         Short lyric context only — fetched live, never stored. Lyrics powered by
-        Musixmatch · translation &amp; keywords by AI.
+        Musixmatch · translation, highlights &amp; explanations by AI.
       </p>
     </div>
   );

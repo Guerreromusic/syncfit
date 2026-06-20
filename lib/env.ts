@@ -22,16 +22,17 @@ export const env = {
   openrouterModel: () =>
     process.env.OPENROUTER_MODEL?.trim() || DEFAULT_OPENROUTER_MODEL,
   songstats: () => process.env.SONGSTATS_API_KEY?.trim() || "",
-  lalal: () => process.env.LALAL_API_KEY?.trim() || "",
-  cyanite: () => process.env.CYANITE_API_KEY?.trim() || "",
+  spotifyClientId: () => process.env.SPOTIFY_CLIENT_ID?.trim() || "",
+  spotifyClientSecret: () => process.env.SPOTIFY_CLIENT_SECRET?.trim() || "",
 };
 
 export const isConfigured = {
   musixmatch: () => has(process.env.MUSIXMATCH_API_KEY),
   openrouter: () => has(process.env.OPENROUTER_API_KEY),
   songstats: () => has(process.env.SONGSTATS_API_KEY),
-  lalal: () => has(process.env.LALAL_API_KEY),
-  cyanite: () => has(process.env.CYANITE_API_KEY),
+  // Spotify uses app-level Client Credentials — both id AND secret are required.
+  spotify: () =>
+    has(process.env.SPOTIFY_CLIENT_ID) && has(process.env.SPOTIFY_CLIENT_SECRET),
 };
 
 /**
@@ -65,18 +66,30 @@ export function getApiStatuses(): ApiStatus[] {
         : "Optional — market signal not included.",
     },
     {
-      key: "lalal",
-      label: "LALAL.AI",
-      state: isConfigured.lalal() ? "connected" : "optional",
-      note: isConfigured.lalal()
-        ? "Connected — audio readiness enabled."
-        : "Optional — audio readiness not included.",
+      key: "spotify",
+      label: "Spotify",
+      state: isConfigured.spotify() ? "connected" : "optional",
+      note: isConfigured.spotify()
+        ? "Connected — metadata & BPM fallback enabled."
+        : "Optional — set SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET to fill missing metadata.",
     },
     {
-      key: "cyanite",
-      label: "Cyanite",
-      state: "later",
-      note: "Planned — advanced sonic tagging (not in V1).",
+      key: "musicbrainz",
+      label: "MusicBrainz",
+      state: "connected",
+      note: "Connected — writers, producers & label credits.",
+    },
+    {
+      key: "previews",
+      label: "Previews & artwork",
+      state: "connected",
+      note: "Connected — keyless iTunes / Deezer for in-app playback & cover art.",
+    },
+    {
+      key: "logos",
+      label: "Brand logos",
+      state: "connected",
+      note: "Connected — keyless brand logos from the brief (DuckDuckGo / Google).",
     },
   ];
 }

@@ -4,9 +4,9 @@ import * as React from "react";
 import { ModelSwitch } from "@/components/ModelSwitch";
 import { RunningState } from "@/components/RunningState";
 import { ArenaCompare } from "@/components/ArenaCompare";
-import { TrophyIcon } from "@/components/icons";
+import { TrophyIcon, ImportIcon, DocIcon } from "@/components/icons";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
-import type { AnalyzeResult, Brief } from "@/lib/types";
+import type { AnalyzeResult, Brief, SavedReport } from "@/lib/types";
 
 // The brief is the factor tracks compete to fit. Track Arena keeps the input
 // simple (free-text only) and fills the rest of the Brief shape with neutral
@@ -35,6 +35,13 @@ export default function ArenaPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [results, setResults] = React.useState<AnalyzeResult[] | null>(null);
   const [imported, setImported] = React.useState(false);
+
+  // Report picker (Import report) + searched-tracks import state.
+  const [showReports, setShowReports] = React.useState(false);
+  const [reports, setReports] = React.useState<SavedReport[] | null>(null);
+  const [reportsLoading, setReportsLoading] = React.useState(false);
+  const [importNote, setImportNote] = React.useState<string | null>(null);
+  const [briefNote, setBriefNote] = React.useState<string | null>(null);
 
   // Import tracks (+brief) queued from Reports via "Add to Arena". Consume once.
   React.useEffect(() => {
@@ -68,6 +75,61 @@ export default function ArenaPage() {
   }
   function removeTrack(i: number) {
     setTracks((t) => (t.length <= 2 ? t : t.filter((_, idx) => idx !== i)));
+  }
+
+  // Import brief: open a picker of previous reports and adopt one's brief text.
+  async function openBriefPicker() {
+    setBriefNote(null);
+    setShowReports((v) => !v);
+    if (reports === null && !reportsLoading) {
+      setReportsLoading(true);
+      try {
+        const res = await fetch("/api/reports");
+        const data = await res.json();
+        setReports(Array.isArray(data.reports) ? data.reports : []);
+      } catch {
+        setReports([]);
+      } finally {
+        setReportsLoading(false);
+      }
+    }
+  }
+
+  function importBriefFromReport(r: SavedReport) {
+    if (r.brief.brief) setBriefText(r.brief.brief);
+    setShowReports(false);
+    setBriefNote(`Imported the brief from “${r.track.title}”.`);
+  }
+
+  // Import the tracks from your most recent Research run (persisted in session).
+  function importSearchedTracks() {
+    setImportNote(null);
+    try {
+      const raw = sessionStorage.getItem("syncfit:research:tracks");
+      const list = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(list) || list.length === 0) {
+        setImportNote("No researched tracks yet — run a Research first, then import them here.");
+        return;
+      }
+      const picked = list
+        .slice(0, 3)
+        .map((x: { title?: string; artist?: string }) => ({
+          title: String(x.title || ""),
+          artist: String(x.artist || ""),
+        }))
+        .filter((x: Entry) => x.title.trim());
+      if (picked.length === 0) {
+        setImportNote("No researched tracks to import.");
+        return;
+      }
+      setTracks(picked.length >= 2 ? picked : [...picked, { title: "", artist: "" }]);
+      const b = sessionStorage.getItem("syncfit:research:brief");
+      if (b && !briefText.trim()) setBriefText(b);
+      setImported(true);
+      setImportNote(`Imported ${picked.length} researched track${picked.length > 1 ? "s" : ""}.`);
+    } catch {
+      setImportNote("Couldn't read researched tracks.");
+    }
   }
 
   const filledCount = tracks.filter((t) => t.title.trim()).length;
@@ -132,155 +194,188 @@ export default function ArenaPage() {
             Set a brief, then see which of up to 3 tracks fits it best.
           </p>
         </div>
+        <ModelSwitch model={model} models={OPENROUTER_MODELS} onChange={setModel} />
       </header>
 
-      <div className="sf-glass">
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/5 px-6 py-4 sm:px-8">
-          <p className="sf-eyebrow">Arena Console</p>
-          <ModelSwitch model={model} models={OPENROUTER_MODELS} onChange={setModel} />
-        </div>
-
-        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2">
-          {/* Left — contenders only (track + artist names) */}
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              runArena();
-            }}
-            className="space-y-6 p-6 sm:p-8 lg:border-r lg:border-white/5"
-          >
-            {/* The brief — the factor the tracks compete to fit */}
+      {/* Simple single-column flow: brief → contender lineup → compare */}
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          runArena();
+        }}
+        className="space-y-5"
+      >
+        {/* The brief */}
+        <div className="sf-card sf-card-pad">
+          <div className="mb-3 flex items-start justify-between gap-2">
             <div>
-              <div className="mb-2">
-                <h2 className="text-base font-semibold leading-tight text-white">
-                  Brief
-                </h2>
-                <p className="text-xs text-soft">
-                  What are the tracks competing to fit?
-                </p>
-              </div>
-              <textarea
-                className="sf-input min-h-[88px] resize-y"
-                placeholder="e.g. Energetic Colombian football brand ad — celebratory, stadium-crowd feel, family-friendly."
-                value={briefText}
-                onChange={(e) => setBriefText(e.target.value)}
-              />
+              <h2 className="text-base font-semibold leading-tight text-white">
+                The brief
+              </h2>
+              <p className="text-xs text-soft">What are the tracks competing to fit?</p>
             </div>
+            <button
+              type="button"
+              onClick={openBriefPicker}
+              aria-expanded={showReports}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
+            >
+              <DocIcon className="h-4 w-4" aria-hidden />
+              Import brief
+            </button>
+          </div>
 
-            <div className="sf-hairline" />
-
-            <div>
-              <div className="mb-4 flex items-center justify-between gap-2">
-                <div>
-                  <h2 className="text-base font-semibold leading-tight text-white">
-                    Contenders
-                  </h2>
-                  <p className="text-xs text-soft">
-                    Enter 2–3 tracks — song title and artist.
-                  </p>
-                </div>
-                {imported && (
-                  <span className="shrink-0 rounded-full bg-lime-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-lime-300 ring-1 ring-inset ring-lime-500/25">
-                    Imported from Reports
-                  </span>
-                )}
-              </div>
-              <div className="space-y-3">
-                {tracks.map((t, i) => (
-                  <div key={i} className="rounded-xl border border-white/[0.07] p-3">
-                    <div className="mb-2 flex items-center justify-between">
-                      <span className="text-xs font-semibold text-purple-200">
-                        Track {i + 1}
-                      </span>
-                      {tracks.length > 2 && (
+          {showReports && (
+            <div className="mb-2 rounded-xl border border-white/10 bg-ink-900/60 p-2">
+              {reportsLoading ? (
+                <p className="px-2 py-3 text-xs text-soft">Loading reports…</p>
+              ) : reports && reports.filter((r) => !r.archived).length > 0 ? (
+                <ul className="max-h-52 space-y-1 overflow-y-auto">
+                  {reports
+                    .filter((r) => !r.archived && r.brief.brief)
+                    .map((r) => (
+                      <li key={r.id}>
                         <button
                           type="button"
-                          onClick={() => removeTrack(i)}
-                          className="text-xs text-soft transition hover:text-white"
+                          onClick={() => importBriefFromReport(r)}
+                          className="flex w-full items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-white/[0.04]"
                         >
-                          Remove
+                          <span className="min-w-0">
+                            <span className="block truncate text-sm font-medium text-white">
+                              {r.track.title}
+                            </span>
+                            <span className="block truncate text-xs text-soft">
+                              {r.brief.brief}
+                            </span>
+                          </span>
+                          <span className="shrink-0 text-xs font-semibold text-lime-300">
+                            Use brief
+                          </span>
                         </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                      <input
-                        className="sf-input"
-                        placeholder="Song title"
-                        value={t.title}
-                        onChange={(e) => setTrack(i, "title", e.target.value)}
-                      />
-                      <input
-                        className="sf-input"
-                        placeholder="Artist name"
-                        value={t.artist}
-                        onChange={(e) => setTrack(i, "artist", e.target.value)}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {tracks.length < 3 && (
-                <button
-                  type="button"
-                  onClick={addTrack}
-                  className="mt-3 text-xs font-medium text-soft transition hover:text-white"
-                >
-                  + Add a track
-                </button>
-              )}
-            </div>
-
-            <div className="sf-hairline" />
-
-            <div className="space-y-3">
-              {error && (
-                <p
-                  role="alert"
-                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-200"
-                >
-                  {error}
+                      </li>
+                    ))}
+                </ul>
+              ) : (
+                <p className="px-2 py-3 text-xs text-soft">
+                  No saved report briefs yet — run a SyncFit analysis first.
                 </p>
               )}
-              <button
-                type="submit"
-                disabled={running || !canCompare}
-                className="sf-btn-primary w-full py-3 text-base"
-              >
-                <TrophyIcon className="h-5 w-5" aria-hidden />
-                {running ? "Comparing…" : "Compare Tracks"}
-              </button>
-              <p className="text-center text-xs text-soft">
-                Each track is scored against your brief, then ranked head-to-head.
-              </p>
             </div>
-          </form>
+          )}
 
-          {/* Right — comparison */}
-          <div className="space-y-5 border-t border-white/5 p-6 sm:p-8 lg:border-t-0">
-            {!results && !running && <ArenaEmpty />}
-            {running && <RunningState mode="arena" />}
-            {results && !running && <ArenaCompare results={results} />}
-          </div>
+          <textarea
+            className="sf-input min-h-[72px] resize-y"
+            placeholder="e.g. Energetic Colombian football brand ad — celebratory, stadium-crowd feel, family-friendly."
+            value={briefText}
+            onChange={(e) => setBriefText(e.target.value)}
+          />
+          {briefNote && <p className="mt-2 text-xs text-lime-300">{briefNote}</p>}
         </div>
-      </div>
-    </div>
-  );
-}
 
-function ArenaEmpty() {
-  return (
-    <div className="sf-glass-soft flex min-h-[420px] flex-col items-center justify-center p-6 text-center">
-      <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-600/20 ring-1 ring-inset ring-purple-500/30">
-        <TrophyIcon className="h-6 w-6 text-lime-400" aria-hidden />
-      </span>
-      <h3 className="mt-4 text-base font-semibold text-white">
-        The matchup appears here
-      </h3>
-      <p className="mt-2 max-w-sm text-sm text-soft">
-        Set a brief and enter 2–3 tracks, then hit Compare — SyncFit scores each
-        one against your brief and ranks them with a category-by-category
-        breakdown.
-      </p>
+        {/* The contender lineup */}
+        <div>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-white">The lineup</h2>
+              {imported && (
+                <span className="rounded-full bg-lime-500/10 px-2.5 py-0.5 text-[11px] font-semibold text-lime-300 ring-1 ring-inset ring-lime-500/25">
+                  Imported
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={importSearchedTracks}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1.5 text-xs font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
+            >
+              <ImportIcon className="h-4 w-4" aria-hidden />
+              Import searched tracks
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {tracks.map((t, i) => (
+              <div
+                key={i}
+                className="rounded-2xl border border-white/[0.08] bg-white/[0.02] p-4"
+              >
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="inline-flex items-center gap-2 text-xs font-semibold text-purple-200">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-purple-600/25 text-[11px] font-bold text-purple-100 ring-1 ring-inset ring-purple-400/40">
+                      {i + 1}
+                    </span>
+                    Track {i + 1}
+                  </span>
+                  {tracks.length > 2 && (
+                    <button
+                      type="button"
+                      onClick={() => removeTrack(i)}
+                      className="text-xs text-soft transition hover:text-white"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <input
+                  className="sf-input"
+                  placeholder="Song title"
+                  value={t.title}
+                  onChange={(e) => setTrack(i, "title", e.target.value)}
+                />
+                <input
+                  className="sf-input mt-2"
+                  placeholder="Artist name"
+                  value={t.artist}
+                  onChange={(e) => setTrack(i, "artist", e.target.value)}
+                />
+              </div>
+            ))}
+
+            {tracks.length < 3 && (
+              <button
+                type="button"
+                onClick={addTrack}
+                className="flex min-h-[148px] flex-col items-center justify-center gap-1.5 rounded-2xl border border-dashed border-white/15 text-sm font-medium text-soft transition hover:border-purple-400/50 hover:bg-white/[0.02] hover:text-white"
+              >
+                <span className="text-2xl leading-none">+</span>
+                Add a track
+              </button>
+            )}
+          </div>
+          {importNote && <p className="mt-2 text-xs text-lime-300">{importNote}</p>}
+        </div>
+
+        {/* Action */}
+        {error && (
+          <p
+            role="alert"
+            className="rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-200"
+          >
+            {error}
+          </p>
+        )}
+        <div className="flex flex-col items-center gap-2 pt-1">
+          <button
+            type="submit"
+            disabled={running || !canCompare}
+            className="sf-btn-primary px-6 py-2.5 text-sm"
+          >
+            <TrophyIcon className="h-4 w-4" aria-hidden />
+            {running ? "Comparing…" : "Compare Tracks"}
+          </button>
+          <p className="text-center text-xs text-soft">
+            Each track is scored against your brief, then ranked head-to-head.
+          </p>
+        </div>
+      </form>
+
+      {/* Results — full width below */}
+      {running && (
+        <div className="sf-card sf-card-pad">
+          <RunningState mode="arena" />
+        </div>
+      )}
+      {results && !running && <ArenaCompare results={results} />}
     </div>
   );
 }

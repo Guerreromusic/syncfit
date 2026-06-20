@@ -2,6 +2,7 @@ import * as React from "react";
 import type { AnalyzeResult, ScoreBreakdown } from "@/lib/types";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { TrophyIcon, WaveIcon } from "./icons";
+import { SpotifyPlay } from "./SpotifyPlay";
 
 function scoreColor(score: number): string {
   if (score >= 85) return "text-lime-300";
@@ -95,7 +96,7 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
                   Safety · {r.analysis.brandSafety.level}
                 </span>
               </div>
-              {r.marketSignal.spotifyTrackId && (
+              {r.marketSignal.spotifyTrackId ? (
                 <iframe
                   title={`Preview: ${r.track.title}`}
                   src={`https://open.spotify.com/embed/track/${r.marketSignal.spotifyTrackId}?theme=0`}
@@ -103,6 +104,14 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
                   height={80}
                   loading="lazy"
                   allow="encrypted-media"
+                />
+              ) : (
+                <SpotifyPlay
+                  title={r.track.title}
+                  artist={r.track.artist}
+                  mode="embed"
+                  compact
+                  className="mt-3"
                 />
               )}
             </div>

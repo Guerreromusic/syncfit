@@ -16,7 +16,7 @@ export function PitchSummaryCard({
   return (
     <div className={bare ? "sf-glass-soft p-5" : "sf-card sf-card-pad"}>
       <div className="mb-3 flex items-center gap-2">
-        <DocIcon className="h-5 w-5 text-purple-300" />
+        <DocIcon className="h-5 w-5 text-purple-300" aria-hidden />
         <h3 className="text-sm font-semibold text-white">Pitch Summary</h3>
       </div>
 
@@ -43,7 +43,7 @@ export function PitchSummaryCard({
           <ul className="space-y-2">
             {supervisorNotes.map((n, i) => (
               <li key={i} className="flex gap-2 text-sm text-soft">
-                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-purple-300" />
+                <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-purple-300" aria-hidden />
                 <span>{n}</span>
               </li>
             ))}

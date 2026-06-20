@@ -46,7 +46,7 @@ export function BrandSafetyCard({
       <ul className="space-y-2">
         {brandSafety.notes.map((note, i) => (
           <li key={i} className="flex gap-2 text-sm text-soft">
-            <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-lime-400" />
+            <CheckIcon className="mt-0.5 h-4 w-4 shrink-0 text-lime-400" aria-hidden />
             <span>{note}</span>
           </li>
         ))}

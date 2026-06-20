@@ -8,58 +8,50 @@ function bandColor(score: number): { stroke: string; text: string } {
   return { stroke: "#F87171", text: "text-red-300" }; // Weak
 }
 
+/**
+ * SyncFit Score as a horizontal progress bar. Fills the width of its container;
+ * pass `size` to cap the max width in px.
+ */
 export function SyncFitScoreGauge({
   score,
   label,
-  size = 168,
+  size,
 }: {
   score: number;
   label: ScoreLabel;
+  /** Optional max width (px). Defaults to filling the container. */
   size?: number;
 }) {
   const clamped = Math.max(0, Math.min(100, score));
-  const stroke = 12;
-  const r = (size - stroke) / 2;
-  const c = 2 * Math.PI * r;
-  const offset = c - (clamped / 100) * c;
   const colors = bandColor(clamped);
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="relative" style={{ width: size, height: size }}>
-        <svg width={size} height={size} className="-rotate-90">
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            stroke="#1E1930"
-            strokeWidth={stroke}
-          />
-          <circle
-            cx={size / 2}
-            cy={size / 2}
-            r={r}
-            fill="none"
-            stroke={colors.stroke}
-            strokeWidth={stroke}
-            strokeLinecap="round"
-            strokeDasharray={c}
-            strokeDashoffset={offset}
-            style={{ transition: "stroke-dashoffset 0.8s ease" }}
-          />
-        </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-4xl font-bold tabular-nums text-white">
-            {clamped}
-          </span>
-          <span className="text-xs font-medium text-soft">/ 100</span>
-        </div>
-      </div>
-      <div className="mt-3 text-center">
+    <div className="w-full" style={size ? { maxWidth: size } : undefined}>
+      <div className="mb-1.5 flex items-end justify-between gap-3">
         <p className="sf-eyebrow">SyncFit Score</p>
-        <p className={"mt-0.5 text-sm font-semibold " + colors.text}>{label}</p>
+        <span className="tabular-nums leading-none">
+          <span className="text-2xl font-bold text-white">{clamped}</span>
+          <span className="text-xs font-medium text-soft"> / 100</span>
+        </span>
       </div>
+      <div
+        className="h-3 w-full overflow-hidden rounded-full bg-ink-800 ring-1 ring-inset ring-white/5"
+        role="progressbar"
+        aria-valuenow={clamped}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label="SyncFit Score"
+      >
+        <div
+          className="h-full rounded-full"
+          style={{
+            width: `${clamped}%`,
+            backgroundColor: colors.stroke,
+            transition: "width 0.8s ease",
+          }}
+        />
+      </div>
+      <p className={"mt-1.5 text-sm font-semibold " + colors.text}>{label}</p>
     </div>
   );
 }

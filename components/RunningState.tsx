@@ -19,7 +19,7 @@ const STEPS_SINGLE = [
 
 const STEPS_DISCOVER = [
   "Reading your brief…",
-  "Scanning the Latin repertoire for the best fits…",
+  "Scanning the global repertoire for the best fits…",
   "Scoring each candidate with AI…",
   "Ranking your top 10…",
   "Polishing the shortlist…",

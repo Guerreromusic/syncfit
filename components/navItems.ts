@@ -2,11 +2,13 @@
 // nav in the Topbar so the destinations can never drift apart.
 import {
   HomeIcon,
-  SlidersIcon,
+  FlaskIcon,
   DocIcon,
   GearIcon,
   InfoIcon,
   TrophyIcon,
+  GridIcon,
+  StarIcon,
 } from "./icons";
 
 export const NAV = [
@@ -14,25 +16,37 @@ export const NAV = [
     href: "/",
     label: "Dashboard",
     icon: HomeIcon,
-    desc: "Overview of SyncFit plus a demo catalog you can try instantly.",
+    desc: "Overview of SyncFit — trending tracks, your stats, and recent reports.",
   },
   {
     href: "/analyzer",
-    label: "Discover",
-    icon: SlidersIcon,
-    desc: "Score a track against your brief — or find the 10 best-fitting tracks.",
+    label: "Research",
+    icon: FlaskIcon,
+    desc: "Deploy research on a brief to surface the 10 best-fitting tracks — or score one you name.",
+  },
+  {
+    href: "/starred",
+    label: "Starred",
+    icon: StarIcon,
+    desc: "Tracks you saved from research — play them or send one back to score.",
+  },
+  {
+    href: "/report",
+    label: "Score reports",
+    icon: DocIcon,
+    desc: "Saved SyncFit score reports — open, ask questions, archive, or restore.",
+  },
+  {
+    href: "/projects",
+    label: "Projects",
+    icon: GridIcon,
+    desc: "Pitch a track or bundle several into one swipeable, shareable pitch project.",
   },
   {
     href: "/arena",
     label: "Track Arena",
     icon: TrophyIcon,
     desc: "Benchmark up to 3 tracks head-to-head against one brief.",
-  },
-  {
-    href: "/report",
-    label: "Reports",
-    icon: DocIcon,
-    desc: "Saved analyses as shareable pitch cards — archive and restore.",
   },
   {
     href: "/info",

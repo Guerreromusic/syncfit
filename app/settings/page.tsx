@@ -11,9 +11,10 @@ export default function SettingsPage() {
         <p className="sf-eyebrow">Settings</p>
         <h1 className="mt-1 text-2xl font-bold text-white">Connections</h1>
         <p className="mt-1 text-sm text-soft">
-          API connection status and how SyncFit handles your data. Keys are read
+          What SyncFit connects to and how it handles your data. Keys are read
           server-side from <code className="rounded bg-ink-800 px-1.5 py-0.5 text-purple-100">.env.local</code> and
-          are never exposed to the browser.
+          are never exposed to the browser. Previews, credits and brand logos are
+          keyless — SyncFit runs fully in demo mode with no keys at all.
         </p>
       </header>
 
@@ -35,6 +36,12 @@ export default function SettingsPage() {
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
               Saved reports keep only your brief, basic track metadata, and
               Synclat-generated scores &amp; summaries.
+            </li>
+            <li className="flex gap-2">
+              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
+              Brand logos use only the public brand domain from your brief (e.g.
+              <code className="mx-1 rounded bg-ink-800 px-1.5 py-0.5 text-purple-100">nike.com</code>)
+              to fetch a public icon — no personal data.
             </li>
             <li className="flex gap-2">
               <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
