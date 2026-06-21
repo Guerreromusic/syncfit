@@ -84,8 +84,14 @@ export function SectionChat() {
     setMessages([]);
   }, [sec.name]);
 
-  // Research is already a chat; public /share pages are chrome-free.
-  if (pathname.startsWith("/share") || pathname.startsWith("/analyzer")) return null;
+  // Research and the Agent page are already conversational; public /share pages
+  // are chrome-free.
+  if (
+    pathname.startsWith("/share") ||
+    pathname.startsWith("/analyzer") ||
+    pathname.startsWith("/agent")
+  )
+    return null;
 
   async function send(q: string) {
     const question = q.trim();
