@@ -5,6 +5,7 @@ import { CreditsCard } from "./CreditsCard";
 import { LyricTranslationCard } from "./LyricTranslationCard";
 import { BrandDNACard } from "./BrandDNACard";
 import { WorldInfluenceCard } from "./WorldInfluenceCard";
+import { MarketSpendCard } from "./MarketSpendCard";
 import { MegaphoneIcon } from "./icons";
 import type { SavedReport } from "@/lib/types";
 
@@ -105,6 +106,9 @@ export function PitchView({
         language={report.track.language}
         genre={report.track.genre}
       />
+
+      {/* Market spend per age group — generated inline with the analysis */}
+      <MarketSpendCard marketSpend={report.analysis.marketSpend} />
     </div>
   );
 }

@@ -209,6 +209,21 @@ export type SuggestedAlternative = {
   matchScore: number;
 };
 
+export type MarketAgeGroup = {
+  label: string;      // "18–24", "25–34", "35–44", "45–54", "55+"
+  indexScore: number; // 0–100: resonance index for this track/genre with this age cohort
+  spendUsd: number;   // monthly per-capita music/entertainment spend in USD
+  insight: string;    // one-line why this group responds (or doesn't)
+};
+
+export type MarketSpend = {
+  ageGroups: MarketAgeGroup[];
+  primaryDemo: string;           // e.g. "25–34 urban millennials"
+  totalAddressableMarket: string; // e.g. "$4.2B global sync market"
+  bestVerticals: string[];       // 3–5 ad/content verticals that target this demo
+  placementNote: string;         // 1–2 sentence market opportunity insight
+};
+
 /** The full AI analysis returned by the OpenRouter reasoning layer. */
 export type SyncFitAnalysis = {
   /** Short AI-generated name for the brief/placement (the report title). */
@@ -226,6 +241,7 @@ export type SyncFitAnalysis = {
   pitchSummary: string;
   supervisorNotes: string[];
   suggestedAlternatives?: SuggestedAlternative[];
+  marketSpend?: MarketSpend | null;
 };
 
 /**

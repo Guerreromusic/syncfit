@@ -51,8 +51,27 @@ OUTPUT RULES (critical):
   "supervisorNotes": string[],            // 2-5 short practical notes
   "suggestedAlternatives": [              // optional, 0-3 items
     { "title": string, "artist": string, "reason": string, "matchScore": number }
-  ]
+  ],
+  "marketSpend": {
+    "ageGroups": [                        // ALWAYS include all 5 bands in this order
+      { "label": "18–24", "indexScore": number, "spendUsd": number, "insight": string },
+      { "label": "25–34", "indexScore": number, "spendUsd": number, "insight": string },
+      { "label": "35–44", "indexScore": number, "spendUsd": number, "insight": string },
+      { "label": "45–54", "indexScore": number, "spendUsd": number, "insight": string },
+      { "label": "55+",   "indexScore": number, "spendUsd": number, "insight": string }
+    ],
+    "primaryDemo": string,                // e.g. "25–34 urban millennials"
+    "totalAddressableMarket": string,     // e.g. "$4.2B global sync licensing market"
+    "bestVerticals": string[],            // 3–5 ad/content verticals that best reach this demo
+    "placementNote": string               // 1–2 sentences on the market opportunity for this track
+  }
 }
+
+marketSpend field guidance:
+- indexScore 0–100: how strongly this track/genre resonates with that age cohort (based on genre, lyric themes, tempo, and known listener skews for the language/style)
+- spendUsd: realistic monthly per-capita music/entertainment spend in USD for that cohort (use general market knowledge — e.g. 18–24 ~$8–12, 25–34 ~$14–18, 35–44 ~$17–22, 45–54 ~$15–20, 55+ ~$10–15)
+- insight: specific one-line reason why this track does or doesn't connect with that age group
+- bestVerticals: ad categories that run campaigns targeting the primaryDemo (e.g. "Fashion & Beauty", "Automotive", "Tech", "Food & Beverage")
 
 Never include any field not listed above. Never wrap the JSON in backticks.`;
 

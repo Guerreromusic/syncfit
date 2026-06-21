@@ -7,6 +7,7 @@ import { AddToArenaButton } from "@/components/AddToArenaButton";
 import { LyricTranslationCard } from "@/components/LyricTranslationCard";
 import { BrandDNACard } from "@/components/BrandDNACard";
 import { WorldInfluenceCard } from "@/components/WorldInfluenceCard";
+import { MarketSpendCard } from "@/components/MarketSpendCard";
 import { AskAI } from "@/components/AskAI";
 import { GenerateBannerButton } from "@/components/GenerateBannerButton";
 import { MegaphoneIcon } from "@/components/icons";
@@ -91,6 +92,9 @@ export default async function ReportDetailPage({
         language={report.track.language}
         genre={report.track.genre}
       />
+
+      {/* Market spend per age group — generated inline with the analysis */}
+      <MarketSpendCard marketSpend={report.analysis.marketSpend} />
     </div>
   );
 }

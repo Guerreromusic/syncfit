@@ -221,6 +221,36 @@ function normalizeAnalysis(raw: any): SyncFitAnalysis {
         }
       : null;
 
+  const AGE_LABELS = ["18–24", "25–34", "35–44", "45–54", "55+"];
+  const rawAgeGroups = Array.isArray(raw?.marketSpend?.ageGroups)
+    ? raw.marketSpend.ageGroups.slice(0, 5).map((g: any, i: number) => ({
+        label: typeof g.label === "string" ? g.label : (AGE_LABELS[i] ?? ""),
+        indexScore: clamp(g.indexScore, 100),
+        spendUsd: Math.max(0, Math.round(Number(g.spendUsd) || 0)),
+        insight: typeof g.insight === "string" ? g.insight.trim() : "",
+      }))
+    : null;
+
+  const marketSpend =
+    rawAgeGroups && rawAgeGroups.length > 0
+      ? {
+          ageGroups: rawAgeGroups,
+          primaryDemo:
+            typeof raw.marketSpend?.primaryDemo === "string"
+              ? raw.marketSpend.primaryDemo.trim()
+              : "",
+          totalAddressableMarket:
+            typeof raw.marketSpend?.totalAddressableMarket === "string"
+              ? raw.marketSpend.totalAddressableMarket.trim()
+              : "",
+          bestVerticals: toStringArray(raw.marketSpend?.bestVerticals).slice(0, 5),
+          placementNote:
+            typeof raw.marketSpend?.placementNote === "string"
+              ? raw.marketSpend.placementNote.trim()
+              : "",
+        }
+      : null;
+
   return {
     briefName:
       typeof raw?.briefName === "string" ? raw.briefName.trim() : "",
@@ -237,6 +267,7 @@ function normalizeAnalysis(raw: any): SyncFitAnalysis {
       typeof raw?.pitchSummary === "string" ? raw.pitchSummary : "",
     supervisorNotes: toStringArray(raw?.supervisorNotes),
     suggestedAlternatives,
+    marketSpend,
   };
 }
 
