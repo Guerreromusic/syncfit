@@ -54,7 +54,7 @@ export function PitchView({
           </span>
           <div className="min-w-0">
             <h2 className="truncate text-base font-semibold text-white">
-              Pitch "{report.track.title}"
+              Pitch &ldquo;{report.track.title}&rdquo;
             </h2>
             <p className="text-xs text-soft">
               Full pitch — score, breakdown, credits, audience &amp; map — plus a public link.
