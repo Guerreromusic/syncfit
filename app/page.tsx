@@ -13,6 +13,7 @@ import { StatTile } from "@/components/StatTile";
 import { SpotifyPlay } from "@/components/SpotifyPlay";
 import { FirstVisitRedirect } from "@/components/FirstVisitRedirect";
 import { scoreColor } from "@/lib/scoreColor";
+import { LiveAudienceSection } from "@/components/LiveAudienceSection";
 
 export const dynamic = "force-dynamic";
 
@@ -171,6 +172,9 @@ export default async function HomePage() {
           </Link>
         </section>
       )}
+
+      {/* Live audience dashboard */}
+      <LiveAudienceSection />
 
       {/* Brand footer — moved here from the hero banner */}
       <footer className="border-t border-white/[0.06] pt-6 text-center">

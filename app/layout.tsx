@@ -6,6 +6,7 @@ import { Topbar } from "@/components/Topbar";
 import { PlayerProvider } from "@/components/PlayerContext";
 import { SectionChat } from "@/components/SectionChat";
 import { SpotifyConnectToast } from "@/components/SpotifyConnectToast";
+import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -36,6 +37,8 @@ export default function RootLayout({
             </main>
           </div>
         </div>
+        {/* Anonymous visitor tracking */}
+        <AnalyticsTracker />
         {/* Per-section assistant — chat about whatever page you're on */}
         <SectionChat />
         <SpotifyConnectToast />
