@@ -1,34 +1,66 @@
 "use client";
 
 import * as React from "react";
-import type { GeoInfluence, GeoRegion } from "@/lib/types";
+import { geoEquirectangular, geoPath } from "d3-geo";
+import { feature } from "topojson-client";
+import type { GeoInfluence } from "@/lib/types";
 
-// Region label + approximate position on the 1000×500 world canvas below.
-const REGIONS: Record<string, { name: string; x: number; y: number }> = {
-  north_america: { name: "North America", x: 210, y: 165 },
-  latin_america: { name: "Latin America", x: 300, y: 350 },
-  caribbean: { name: "Caribbean", x: 295, y: 250 },
-  western_europe: { name: "Western Europe", x: 495, y: 150 },
-  iberia: { name: "Spain & Portugal", x: 458, y: 188 },
-  eastern_europe: { name: "Eastern Europe", x: 560, y: 132 },
-  mena: { name: "Middle East & N. Africa", x: 575, y: 225 },
-  subsaharan_africa: { name: "Sub-Saharan Africa", x: 535, y: 320 },
-  south_asia: { name: "South Asia", x: 690, y: 240 },
-  east_asia: { name: "East Asia", x: 808, y: 180 },
-  southeast_asia: { name: "Southeast Asia", x: 778, y: 295 },
-  oceania: { name: "Oceania", x: 850, y: 385 },
+// Region label + a real geographic anchor (longitude, latitude). The map and the
+// markers are drawn with the SAME projection, so the bubbles land on the right
+// part of the real coastline.
+const REGIONS: Record<string, { name: string; lon: number; lat: number }> = {
+  north_america: { name: "North America", lon: -100, lat: 45 },
+  latin_america: { name: "Latin America", lon: -62, lat: -12 },
+  caribbean: { name: "Caribbean", lon: -73, lat: 19 },
+  western_europe: { name: "Western Europe", lon: 6, lat: 48 },
+  iberia: { name: "Spain & Portugal", lon: -3.5, lat: 40 },
+  eastern_europe: { name: "Eastern Europe", lon: 26, lat: 50 },
+  mena: { name: "Middle East & N. Africa", lon: 35, lat: 28 },
+  subsaharan_africa: { name: "Sub-Saharan Africa", lon: 22, lat: 2 },
+  south_asia: { name: "South Asia", lon: 78, lat: 22 },
+  east_asia: { name: "East Asia", lon: 116, lat: 36 },
+  southeast_asia: { name: "Southeast Asia", lon: 108, lat: 8 },
+  oceania: { name: "Oceania", lon: 145, lat: -28 },
 };
 
-// Simplified, recognizable continent silhouettes (dim backdrop).
-const CONTINENTS = [
-  "M120,95 L250,82 L300,128 L286,168 L250,175 L236,228 L196,272 L168,250 L176,200 L142,176 L130,140 Z",
-  "M256,292 L300,286 L316,332 L296,402 L272,452 L256,420 L262,360 L242,330 Z",
-  "M450,110 L520,100 L560,120 L545,165 L500,180 L470,200 L455,165 L445,135 Z",
-  "M470,210 L560,205 L600,250 L585,322 L546,392 L510,360 L496,300 L476,260 Z",
-  "M565,95 L780,85 L882,130 L870,200 L800,232 L720,216 L650,236 L600,206 L576,150 Z",
-  "M760,250 L822,250 L836,300 L790,320 L760,296 Z",
-  "M802,356 L872,350 L886,396 L836,410 L806,386 Z",
-];
+const MAP_W = 1000;
+const MAP_H = 500;
+// One shared equirectangular projection fitted to the canvas (whole globe).
+const PROJECTION = geoEquirectangular().fitSize([MAP_W, MAP_H], { type: "Sphere" });
+const PATH = geoPath(PROJECTION);
+function project(lon: number, lat: number): [number, number] {
+  return (PROJECTION([lon, lat]) as [number, number] | null) ?? [0, 0];
+}
+function regionXY(id: string): { name: string; x: number; y: number } | null {
+  const r = REGIONS[id];
+  if (!r) return null;
+  const [x, y] = project(r.lon, r.lat);
+  return { name: r.name, x, y };
+}
+
+// Real country outlines (path strings), built once from the world topojson in
+// /public and cached across cards.
+let COUNTRY_PATHS: string[] | null = null;
+let COUNTRY_PROMISE: Promise<string[]> | null = null;
+function loadCountryPaths(): Promise<string[]> {
+  if (COUNTRY_PATHS) return Promise.resolve(COUNTRY_PATHS);
+  if (!COUNTRY_PROMISE) {
+    COUNTRY_PROMISE = fetch("/world-110m.json")
+      .then((r) => r.json())
+      .then((topo: any) => {
+        const fc = feature(topo, topo.objects.countries) as any;
+        COUNTRY_PATHS = (fc.features as unknown[])
+          .map((f: any) => PATH(f) || "")
+          .filter(Boolean);
+        return COUNTRY_PATHS;
+      })
+      .catch(() => {
+        COUNTRY_PATHS = [];
+        return COUNTRY_PATHS;
+      });
+  }
+  return COUNTRY_PROMISE;
+}
 
 type GeoData = GeoInfluence & { available: boolean };
 
@@ -49,6 +81,13 @@ export function GeoInfluenceCard({
   const [done, setDone] = React.useState(false);
   const [active, setActive] = React.useState<string | null>(null);
   const [pinned, setPinned] = React.useState(false);
+  const [countryPaths, setCountryPaths] = React.useState<string[]>(
+    COUNTRY_PATHS ?? [],
+  );
+
+  React.useEffect(() => {
+    loadCountryPaths().then(setCountryPaths).catch(() => {});
+  }, []);
 
   React.useEffect(() => {
     let alive = true;
@@ -89,7 +128,6 @@ export function GeoInfluenceCard({
     ? regions.find((r) => r.id === active) ?? null
     : null;
 
-  // hover changes the active region unless one is pinned by click.
   const hover = (id: string | null) => {
     if (!pinned) setActive(id);
   };
@@ -109,9 +147,7 @@ export function GeoInfluenceCard({
         <GlobeIcon className="h-5 w-5 text-purple-300" aria-hidden />
         <h3 className="text-sm font-semibold text-white">Worldwide influence</h3>
         {language && <span className="sf-pill text-[10px]">{language}</span>}
-        <span className="ml-auto text-[11px] text-soft">
-          Hover or tap a region
-        </span>
+        <span className="ml-auto text-[11px] text-soft">Hover or tap a region</span>
       </div>
       {data.summary && (
         <p className="mb-3 text-sm leading-relaxed text-soft">{data.summary}</p>
@@ -122,27 +158,39 @@ export function GeoInfluenceCard({
         {/* Interactive map */}
         <div className="relative overflow-hidden rounded-xl border border-white/10 bg-ink-950/60 lg:col-span-3">
           <svg
-            viewBox="0 0 1000 500"
+            viewBox={`0 0 ${MAP_W} ${MAP_H}`}
             className="block w-full"
             role="img"
             aria-label="World influence map"
           >
+            {/* ocean wash */}
+            <rect x="0" y="0" width={MAP_W} height={MAP_H} fill="#0b1020" fillOpacity="0.5" />
             {/* graticule */}
             {[125, 250, 375].map((y) => (
-              <line key={`h${y}`} x1="0" y1={y} x2="1000" y2={y} stroke="white" strokeOpacity="0.04" strokeWidth="1" />
+              <line key={`h${y}`} x1="0" y1={y} x2={MAP_W} y2={y} stroke="white" strokeOpacity="0.04" strokeWidth="1" />
             ))}
-            {[250, 500, 750].map((x) => (
-              <line key={`v${x}`} x1={x} y1="0" x2={x} y2="500" stroke="white" strokeOpacity="0.04" strokeWidth="1" />
+            {[200, 400, 600, 800].map((x) => (
+              <line key={`v${x}`} x1={x} y1="0" x2={x} y2={MAP_H} stroke="white" strokeOpacity="0.04" strokeWidth="1" />
             ))}
-            {/* continents */}
-            {CONTINENTS.map((d, i) => (
-              <path key={i} d={d} fill="white" fillOpacity="0.06" stroke="white" strokeOpacity="0.08" strokeWidth="1" />
+
+            {/* real countries */}
+            {countryPaths.map((d, i) => (
+              <path
+                key={i}
+                d={d}
+                fill="#ffffff"
+                fillOpacity="0.07"
+                stroke="#ffffff"
+                strokeOpacity="0.14"
+                strokeWidth="0.5"
+                strokeLinejoin="round"
+              />
             ))}
 
             {/* connection lines from the strongest region to the others */}
             {regions.slice(1).map((r) => {
-              const a = REGIONS[strongest.id];
-              const b = REGIONS[r.id];
+              const a = regionXY(strongest.id);
+              const b = regionXY(r.id);
               if (!a || !b) return null;
               const lit = active === r.id || active === strongest.id;
               return (
@@ -164,7 +212,7 @@ export function GeoInfluenceCard({
             {[...regions]
               .sort((a, b) => a.strength - b.strength)
               .map((r) => {
-                const pos = REGIONS[r.id];
+                const pos = regionXY(r.id);
                 if (!pos) return null;
                 const isActive = active === r.id;
                 const dim = active !== null && !isActive;
@@ -209,6 +257,7 @@ export function GeoInfluenceCard({
                         fill={isActive ? "#ffffff" : "#ecfccb"}
                         fontSize={isActive ? 19 : 16}
                         fontWeight={isActive ? 700 : 500}
+                        style={{ paintOrder: "stroke", stroke: "#0b1020", strokeWidth: 3, strokeLinejoin: "round" }}
                       >
                         {pos.name}
                       </text>
@@ -237,7 +286,11 @@ export function GeoInfluenceCard({
             ) : (
               <div className="rounded-lg border border-white/10 bg-ink-950/70 px-3 py-1.5">
                 <p className="text-[11px] text-soft">
-                  Strongest: <span className="font-semibold text-lime-300">{REGIONS[strongest.id]?.name}</span> · {strongest.strength}%
+                  Strongest:{" "}
+                  <span className="font-semibold text-lime-300">
+                    {REGIONS[strongest.id]?.name}
+                  </span>{" "}
+                  · {strongest.strength}%
                 </p>
               </div>
             )}
@@ -247,7 +300,6 @@ export function GeoInfluenceCard({
         {/* Why it resonates — by region (synced to the map) */}
         <ul className="space-y-1.5 lg:col-span-2">
           {regions.map((r) => {
-            const pos = REGIONS[r.id];
             const isActive = active === r.id;
             return (
               <li key={r.id}>
@@ -265,7 +317,7 @@ export function GeoInfluenceCard({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <p className="truncate text-xs font-semibold text-white">
-                      {pos?.name ?? r.id}
+                      {REGIONS[r.id]?.name ?? r.id}
                     </p>
                     <span className="shrink-0 text-[11px] font-semibold tabular-nums text-lime-300">
                       {r.strength}%
