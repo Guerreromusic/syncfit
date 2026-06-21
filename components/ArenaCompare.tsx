@@ -1,12 +1,16 @@
+"use client";
+
 import * as React from "react";
 import type { AnalyzeResult, ScoreBreakdown } from "@/lib/types";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
 import { TrophyIcon, WaveIcon } from "./icons";
 import { SpotifyPlay } from "./SpotifyPlay";
+import { StarButton } from "./favourites";
 
 /** Side-by-side benchmark of up to 3 analyzed tracks against one brief. */
 export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
+  const [showBreakdown, setShowBreakdown] = React.useState(false);
   // Rank by SyncFit score (desc). Stable for ties.
   const ranked = results
     .map((r, i) => ({ r, i }))
@@ -47,12 +51,25 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
                 <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-purple-600/25 text-xs font-bold text-purple-100 ring-1 ring-inset ring-purple-400/40">
                   {rank + 1}
                 </span>
-                {isWinner && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-lime-500/10 px-2 py-0.5 text-[11px] font-semibold text-lime-300 ring-1 ring-inset ring-lime-500/30">
-                    <TrophyIcon className="h-3.5 w-3.5" aria-hidden />
-                    Winner
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {isWinner && (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-lime-500/10 px-2 py-0.5 text-[11px] font-semibold text-lime-300 ring-1 ring-inset ring-lime-500/30">
+                      <TrophyIcon className="h-3.5 w-3.5" aria-hidden />
+                      Winner
+                    </span>
+                  )}
+                  <StarButton
+                    track={{
+                      title: r.track.title,
+                      artist: r.track.artist,
+                      score: r.analysis.syncFitScore,
+                      scoreLabel: r.analysis.scoreLabel,
+                      genre: r.track.genre,
+                      spotifyTrackId: r.marketSignal.spotifyTrackId,
+                      artworkUrl: r.marketSignal.artworkUrl,
+                    }}
+                  />
+                </div>
               </div>
               <div className="mt-3 flex items-center gap-3">
                 {r.marketSignal.artworkUrl ? (
@@ -106,10 +123,20 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
         })}
       </div>
 
-      {/* Breakdown comparison */}
+      {/* Breakdown comparison — collapsed by default so the leaderboard leads */}
       <div className="sf-glass-soft p-5">
-        <p className="sf-eyebrow mb-3">Score breakdown</p>
-        <div className="overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setShowBreakdown((v) => !v)}
+          aria-expanded={showBreakdown}
+          className="flex w-full items-center justify-between gap-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-400/50"
+        >
+          <span className="sf-eyebrow">Score breakdown</span>
+          <span className="text-xs font-medium text-soft transition hover:text-white">
+            {showBreakdown ? "Hide ▲" : "Show ▼"}
+          </span>
+        </button>
+        <div className={(showBreakdown ? "mt-3 " : "hidden ") + "overflow-x-auto"}>
           <table className="w-full border-collapse text-sm">
             <thead>
               <tr>

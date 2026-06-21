@@ -35,6 +35,16 @@ export default function ArenaPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [results, setResults] = React.useState<AnalyzeResult[] | null>(null);
   const [imported, setImported] = React.useState(false);
+  // After a comparison, collapse the form to a compact bar so results lead.
+  const [showForm, setShowForm] = React.useState(true);
+  const resultsRef = React.useRef<HTMLDivElement>(null);
+
+  // Bring results into view the moment they're ready — no scrolling to find them.
+  React.useEffect(() => {
+    if (results && !running) {
+      resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [results, running]);
 
   // Report picker (Import report) + searched-tracks import state.
   const [showReports, setShowReports] = React.useState(false);
@@ -179,6 +189,7 @@ export default function ArenaPage() {
         return;
       }
       setResults(ok);
+      setShowForm(false); // collapse the form so results lead, no scrolling
     } finally {
       setRunning(false);
     }
@@ -197,7 +208,9 @@ export default function ArenaPage() {
         <ModelSwitch model={model} models={OPENROUTER_MODELS} onChange={setModel} />
       </header>
 
-      {/* Simple single-column flow: brief → contender lineup → compare */}
+      {/* Simple single-column flow: brief → contender lineup → compare. Collapses
+          to a compact bar once results exist, so the results lead the page. */}
+      {showForm ? (
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -371,14 +384,40 @@ export default function ArenaPage() {
           </p>
         </div>
       </form>
+      ) : (
+        <div className="sf-card flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+          <div className="min-w-0">
+            <p className="sf-eyebrow">Comparing {filledCount} tracks</p>
+            <p className="truncate text-sm text-white">{briefText.trim() || "—"}</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setShowForm(true)} className="sf-btn-secondary">
+              Edit lineup
+            </button>
+            <button
+              type="button"
+              onClick={runArena}
+              disabled={running || !canCompare}
+              className="sf-btn-white"
+            >
+              <TrophyIcon className="h-4 w-4" aria-hidden />
+              Re-run
+            </button>
+          </div>
+        </div>
+      )}
 
-      {/* Results — full width below */}
+      {/* Results — lead the page once ready (auto-scrolled into view) */}
       {running && (
         <div className="sf-card sf-card-pad">
           <RunningState mode="arena" />
         </div>
       )}
-      {results && !running && <ArenaCompare results={results} />}
+      {results && !running && (
+        <div ref={resultsRef} className="scroll-mt-4">
+          <ArenaCompare results={results} />
+        </div>
+      )}
     </div>
   );
 }

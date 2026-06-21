@@ -3,6 +3,7 @@ import type { SuggestedAlternative, Brief } from "@/lib/types";
 import { WaveIcon } from "./icons";
 import { DeployAlternativeButton } from "./DeployAlternativeButton";
 import { SpotifyPlay } from "./SpotifyPlay";
+import { StarButton } from "./favourites";
 
 export function SuggestedAlternatives({
   alternatives,
@@ -48,6 +49,7 @@ export function SuggestedAlternatives({
                   {alt.matchScore}
                 </span>
                 <div className="flex items-center gap-1.5">
+                  <StarButton track={{ title: alt.title, artist: alt.artist, score: alt.matchScore }} />
                   <SpotifyPlay title={alt.title} artist={alt.artist} mode="link" />
                   <DeployAlternativeButton
                     title={alt.title}

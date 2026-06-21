@@ -14,7 +14,7 @@ import { MicDictation } from "./MicDictation";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
-import { RESEARCH_SEED_KEY } from "@/lib/keys";
+import { RESEARCH_SEED_KEY, SELECTED_TRACK_KEY } from "@/lib/keys";
 import type { ScoreBreakdown } from "@/lib/types";
 import type {
   AnalyzeResult,
@@ -108,6 +108,14 @@ export function ResearchChat() {
     (t: { title: string; artist: string } | null) => {
       selectedTrackRef.current = t;
       setSelectedTrack(t);
+      // Persist so the lock survives a remount (incl. Strict Mode's dev
+      // double-mount) and is scored against the brief the user enters next.
+      try {
+        if (t) sessionStorage.setItem(SELECTED_TRACK_KEY, JSON.stringify(t));
+        else sessionStorage.removeItem(SELECTED_TRACK_KEY);
+      } catch {
+        /* sessionStorage unavailable */
+      }
     },
     [],
   );
@@ -354,25 +362,32 @@ export function ResearchChat() {
   React.useEffect(() => {
     try {
       const rawSeed = sessionStorage.getItem(RESEARCH_SEED_KEY);
-      if (!rawSeed) return;
-      sessionStorage.removeItem(RESEARCH_SEED_KEY);
-      const seed = JSON.parse(rawSeed) as { title?: string; artist?: string; brief?: Brief | null };
-      if (!seed.title) return;
-      const track = { title: seed.title, artist: seed.artist ?? "" };
-      if (seed.brief?.brief) {
-        // Deployed WITH a brief (e.g. a suggested alternative) → score immediately.
-        briefRef.current = seed.brief.brief;
-        add({ role: "user", text: track.artist ? `${track.title} — ${track.artist}` : track.title });
-        void runResearch({ override: track });
-      } else {
-        // Deployed from Trending/Dashboard with NO brief → LOCK this track and wait
-        // for the user's brief, then score THIS track against it.
-        selectTrack(track);
-        add({
-          role: "assistant",
-          kind: "qa",
-          text: `Loaded “${track.title}”${track.artist ? ` — ${track.artist}` : ""}. Describe the placement (type or 🎙 speak) and I’ll score this track against your brief.`,
-        });
+      if (rawSeed) {
+        sessionStorage.removeItem(RESEARCH_SEED_KEY);
+        const seed = JSON.parse(rawSeed) as { title?: string; artist?: string; brief?: Brief | null };
+        if (seed.title) {
+          const track = { title: seed.title, artist: seed.artist ?? "" };
+          if (seed.brief?.brief) {
+            // Deployed WITH a brief (e.g. a suggested alternative) → score now.
+            briefRef.current = seed.brief.brief;
+            add({ role: "user", text: track.artist ? `${track.title} — ${track.artist}` : track.title });
+            void runResearch({ override: track });
+            return;
+          }
+          // Deployed from Trending/Dashboard with NO brief → LOCK this track. The
+          // pill + placeholder are the indicator; the next brief scores it. This
+          // persists to SELECTED_TRACK_KEY so it survives a remount.
+          selectTrack(track);
+          return;
+        }
+      }
+      // No fresh seed — restore a previously-locked track (e.g. after Strict
+      // Mode's throwaway mount already consumed the one-shot seed), so a deployed
+      // track is NEVER lost before the user enters a brief.
+      const rawSel = sessionStorage.getItem(SELECTED_TRACK_KEY);
+      if (rawSel) {
+        const sel = JSON.parse(rawSel) as { title?: string; artist?: string };
+        if (sel.title) selectTrack({ title: sel.title, artist: sel.artist ?? "" });
       }
     } catch {
       /* ignore malformed seed */
