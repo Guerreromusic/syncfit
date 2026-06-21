@@ -415,7 +415,7 @@ export default function ArenaPage() {
       )}
       {results && !running && (
         <div ref={resultsRef} className="scroll-mt-4">
-          <ArenaCompare results={results} />
+          <ArenaCompare results={results} briefText={briefText} />
         </div>
       )}
     </div>

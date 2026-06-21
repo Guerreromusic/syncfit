@@ -48,6 +48,13 @@ export async function POST(req: Request) {
   let mood = "";
   let themes: string[] = [];
   let analysis = "";
+  let decode: {
+    narrative: string;
+    culturalContext: string;
+    slangTerms: { term: string; plain: string }[];
+    metaphors: { phrase: string; decoded: string }[];
+    emotion: string;
+  } | undefined = undefined;
   try {
     const t = await runLyricTranslation({
       snippet,
@@ -62,6 +69,7 @@ export async function POST(req: Request) {
     mood = t.mood;
     themes = t.themes;
     analysis = t.analysis;
+    decode = t.decode;
   } catch {
     // No AI / failed — still return the original snippet (untranslated).
   }
@@ -77,5 +85,6 @@ export async function POST(req: Request) {
     mood,
     themes,
     analysis,
+    decode,
   });
 }

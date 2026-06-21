@@ -361,6 +361,14 @@ export type LyricTranslation = {
   themes: string[];
   /** 1–2 sentence interpretation of what the lyric conveys (independent of brief). */
   analysis: string;
+  /** Lyric decode — narrative, cultural context, slang, metaphors, emotion. */
+  decode?: {
+    narrative: string;       // what story/scenario the lyric describes in plain English
+    culturalContext: string; // cultural references, origins, context
+    slangTerms: { term: string; plain: string }[]; // up to 4
+    metaphors: { phrase: string; decoded: string }[]; // up to 4
+    emotion: string;         // the deeper emotional undercurrent beyond surface mood
+  };
 };
 
 export async function runLyricTranslation(input: {
@@ -389,7 +397,18 @@ export async function runLyricTranslation(input: {
   "matchSummary": string,      // 1-2 sentences: overall, how well this lyric's theme fits the brief
   "mood": string,              // the lyric's overall mood/tone in 1-3 words, e.g. "celebratory, defiant"
   "themes": string[],          // up to 5 short theme tags drawn from the lyric, e.g. ["heartbreak","nightlife"]
-  "analysis": string           // 1-2 sentences interpreting what the lyric conveys — imagery, narrative, tone — INDEPENDENT of the brief
+  "analysis": string,          // 1-2 sentences interpreting what the lyric conveys — imagery, narrative, tone — INDEPENDENT of the brief
+  "decode": {
+    "narrative": string,        // what scenario/story the lyric paints in plain terms (1-2 sentences)
+    "culturalContext": string,  // cultural origin, references, or context (1 sentence)
+    "slangTerms": [             // up to 4 slang words or idioms
+      { "term": string, "plain": string }
+    ],
+    "metaphors": [              // up to 4 metaphors or poetic phrases
+      { "phrase": string, "decoded": string }
+    ],
+    "emotion": string           // deeper emotional undercurrent beyond the surface mood (1 short sentence)
+  }
 }
 The "keywords" and each "phrase" MUST be substrings of the translation so they can be highlighted. No commentary, no markdown, no extra fields. Do not expand beyond the snippet or invent lyrics.`;
 
@@ -457,6 +476,17 @@ Translate the snippet to ${target}; analyse what the lyric conveys (mood, themes
       ? raw.themes.filter((t: unknown) => typeof t === "string" && t.trim()).slice(0, 5)
       : [],
     analysis: typeof raw?.analysis === "string" ? raw.analysis : "",
+    decode: raw?.decode && typeof raw.decode === "object" ? {
+      narrative: typeof raw.decode.narrative === "string" ? raw.decode.narrative : "",
+      culturalContext: typeof raw.decode.culturalContext === "string" ? raw.decode.culturalContext : "",
+      slangTerms: Array.isArray(raw.decode.slangTerms)
+        ? raw.decode.slangTerms.filter((x: unknown) => x && typeof x === "object").slice(0, 4)
+        : [],
+      metaphors: Array.isArray(raw.decode.metaphors)
+        ? raw.decode.metaphors.filter((x: unknown) => x && typeof x === "object").slice(0, 4)
+        : [],
+      emotion: typeof raw.decode.emotion === "string" ? raw.decode.emotion : "",
+    } : undefined,
   };
 }
 

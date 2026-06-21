@@ -57,7 +57,26 @@ function Spinner({ className }: { className?: string }) {
   );
 }
 
+function DecodeIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className ?? "h-4 w-4"} aria-hidden>
+      <path d="M10 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="8" y1="13" x2="16" y2="13" />
+      <line x1="8" y1="17" x2="12" y2="17" />
+    </svg>
+  );
+}
+
 type LyricMatch = { phrase: string; meaning: string; why: string };
+
+type LyricDecode = {
+  narrative: string;
+  culturalContext: string;
+  slangTerms: { term: string; plain: string }[];
+  metaphors: { phrase: string; decoded: string }[];
+  emotion: string;
+};
 
 type LyricData = {
   available: boolean;
@@ -70,6 +89,7 @@ type LyricData = {
   mood?: string;
   themes?: string[];
   analysis?: string;
+  decode?: LyricDecode;
 };
 
 /**
@@ -280,6 +300,76 @@ export function LyricTranslationCard({
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Lyric Decode section */}
+      {data.decode && (data.decode.narrative || data.decode.slangTerms.length > 0 || data.decode.metaphors.length > 0) && (
+        <div className="mt-4 rounded-xl border border-indigo-500/15 bg-indigo-500/[0.04] p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <DecodeIcon className="h-4 w-4 text-indigo-300" aria-hidden />
+            <p className="text-xs font-semibold uppercase tracking-wider text-indigo-200">
+              Lyric Decoder
+            </p>
+          </div>
+
+          {/* Narrative */}
+          {data.decode.narrative && (
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-soft/70">What it&apos;s about</p>
+              <p className="text-xs leading-relaxed text-soft">{data.decode.narrative}</p>
+            </div>
+          )}
+
+          {/* Emotion */}
+          {data.decode.emotion && (
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-soft/70">Emotional undercurrent</p>
+              <p className="text-xs leading-relaxed text-soft">{data.decode.emotion}</p>
+            </div>
+          )}
+
+          {/* Cultural context */}
+          {data.decode.culturalContext && (
+            <div className="mb-3">
+              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-soft/70">Cultural context</p>
+              <p className="text-xs leading-relaxed text-soft">{data.decode.culturalContext}</p>
+            </div>
+          )}
+
+          {/* Slang / idioms */}
+          {data.decode.slangTerms.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-soft/70">Slang &amp; Idioms</p>
+              <ul className="space-y-1.5">
+                {data.decode.slangTerms.map((s, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span className="shrink-0 rounded-md bg-indigo-500/15 px-2 py-0.5 text-xs font-semibold text-indigo-200 ring-1 ring-inset ring-indigo-500/25">
+                      {s.term}
+                    </span>
+                    <p className="text-xs leading-relaxed text-soft">{s.plain}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Metaphors */}
+          {data.decode.metaphors.length > 0 && (
+            <div>
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-soft/70">Metaphors &amp; Poetry</p>
+              <ul className="space-y-1.5">
+                {data.decode.metaphors.map((m, i) => (
+                  <li key={i} className="flex gap-2.5">
+                    <span className="shrink-0 rounded-md bg-indigo-500/10 px-2 py-0.5 text-xs font-medium italic text-indigo-200 ring-1 ring-inset ring-indigo-500/20">
+                      {m.phrase}
+                    </span>
+                    <p className="text-xs leading-relaxed text-soft">{m.decoded}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
 

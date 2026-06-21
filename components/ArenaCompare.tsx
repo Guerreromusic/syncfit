@@ -4,13 +4,59 @@ import * as React from "react";
 import type { AnalyzeResult, ScoreBreakdown } from "@/lib/types";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
-import { TrophyIcon, WaveIcon } from "./icons";
+import { TrophyIcon, WaveIcon, ShareIcon, CheckIcon, ArrowRightIcon } from "./icons";
 import { SpotifyPlay } from "./SpotifyPlay";
 import { StarButton } from "./favourites";
 
 /** Side-by-side benchmark of up to 3 analyzed tracks against one brief. */
-export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
+export function ArenaCompare({
+  results,
+  briefText = "",
+}: {
+  results: AnalyzeResult[];
+  briefText?: string;
+}) {
   const [showBreakdown, setShowBreakdown] = React.useState(false);
+
+  // Benchmark share state
+  const [benchmarkLoading, setBenchmarkLoading] = React.useState(false);
+  const [benchmarkUrl, setBenchmarkUrl] = React.useState<string | null>(null);
+  const [benchmarkCopied, setBenchmarkCopied] = React.useState(false);
+  const [benchmarkError, setBenchmarkError] = React.useState<string | null>(null);
+
+  async function createBenchmark() {
+    if (benchmarkLoading) return;
+    setBenchmarkError(null);
+    setBenchmarkLoading(true);
+    try {
+      const res = await fetch("/api/arena-benchmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          briefText,
+          results: results.map((r) => ({
+            title: r.track.title,
+            artist: r.track.artist,
+            score: r.analysis.syncFitScore,
+            scoreLabel: r.analysis.scoreLabel,
+            brandSafety: r.analysis.brandSafety.level,
+            breakdown: r.analysis.breakdown,
+            artworkUrl: r.marketSignal.artworkUrl,
+            spotifyTrackId: r.marketSignal.spotifyTrackId,
+            genre: r.track.genre,
+            pitchSummary: r.analysis.pitchSummary,
+          })),
+        }),
+      });
+      const data: { token?: string; error?: string } = await res.json();
+      if (!res.ok || !data.token) throw new Error(data.error || "Failed to create benchmark");
+      setBenchmarkUrl(`${window.location.origin}/share/benchmark/${data.token}`);
+    } catch (e) {
+      setBenchmarkError(e instanceof Error ? e.message : "Failed to create benchmark");
+    } finally {
+      setBenchmarkLoading(false);
+    }
+  }
   // Rank by SyncFit score (desc). Stable for ties.
   const ranked = results
     .map((r, i) => ({ r, i }))
@@ -202,6 +248,65 @@ export function ArenaCompare({ results }: { results: AnalyzeResult[] }) {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Benchmark share */}
+      <div className="sf-glass-soft flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+        <div>
+          <p className="sf-eyebrow">Benchmark Pitch</p>
+          <p className="text-xs text-soft mt-0.5">Share these findings as a public benchmark report.</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {!benchmarkUrl ? (
+            <button
+              type="button"
+              onClick={createBenchmark}
+              disabled={benchmarkLoading}
+              className="sf-btn-white"
+            >
+              <ShareIcon className="h-4 w-4" aria-hidden />
+              {benchmarkLoading ? "Creating…" : "Share Benchmark"}
+            </button>
+          ) : (
+            <>
+              <input
+                readOnly
+                value={benchmarkUrl}
+                onFocus={(e) => e.currentTarget.select()}
+                className="min-w-0 w-48 rounded-lg border border-white/10 bg-ink-900/60 px-3 py-1.5 text-xs text-soft outline-none"
+                aria-label="Benchmark share link"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(benchmarkUrl).then(() => {
+                    setBenchmarkCopied(true);
+                    setTimeout(() => setBenchmarkCopied(false), 2000);
+                  });
+                }}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
+              >
+                {benchmarkCopied ? (
+                  <>
+                    <CheckIcon className="h-4 w-4 text-lime-400" />
+                    Copied
+                  </>
+                ) : (
+                  "Copy"
+                )}
+              </button>
+              <a
+                href={benchmarkUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-3 py-1.5 text-xs font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
+              >
+                Open <ArrowRightIcon className="h-4 w-4" />
+              </a>
+            </>
+          )}
+          {benchmarkError && <p className="text-xs text-red-300">{benchmarkError}</p>}
         </div>
       </div>
     </div>
