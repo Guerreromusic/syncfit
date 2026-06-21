@@ -86,10 +86,31 @@ export function Sidebar() {
                     (active ? "text-lime-400" : "text-soft group-hover:text-purple-200")
                   }
                 />
-                {/* Blinking pulse when research is running on this nav item */}
+                {/* Puzzle-matching animation when research is running */}
                 {isResearching && href === "/analyzer" && (
-                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_6px_2px_rgba(163,230,53,0.6)]">
-                    <span className="absolute inset-0 animate-ping rounded-full bg-lime-400 opacity-75" />
+                  <span className="pointer-events-none absolute -right-3 -top-3">
+                    <svg
+                      width="30"
+                      height="14"
+                      viewBox="-2 0 34 16"
+                      className="sf-puzzle-wrap"
+                      aria-hidden
+                    >
+                      {/* Left piece — body + right-side tab */}
+                      <path
+                        className="sf-puzzle-left"
+                        d="M 0,2 L 12,2 L 12,5 C 17,5 17,11 12,11 L 12,14 L 0,14 Z"
+                        fill="#a3e635"
+                        fillOpacity="0.92"
+                      />
+                      {/* Right piece — body + left-side notch */}
+                      <path
+                        className="sf-puzzle-right"
+                        d="M 16,2 L 28,2 L 28,14 L 16,14 L 16,11 C 11,11 11,5 16,5 Z"
+                        fill="#a3e635"
+                        fillOpacity="0.92"
+                      />
+                    </svg>
                   </span>
                 )}
               </span>

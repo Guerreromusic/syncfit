@@ -361,6 +361,30 @@ html {
   color: #94a3b8;
 }
 
+/* ── Research pulse: two puzzle pieces sliding together ──────────────────── */
+@keyframes sf-puzzle-left {
+  0%      { transform: translateX(-10px); opacity: 0;    }
+  15%     { opacity: 0.75; }
+  42%, 62%{ transform: translateX(0);     opacity: 1;    }
+  85%     { opacity: 0.6; }
+  100%    { transform: translateX(-10px); opacity: 0;    }
+}
+@keyframes sf-puzzle-right {
+  0%      { transform: translateX(10px);  opacity: 0;    }
+  15%     { opacity: 0.75; }
+  42%, 62%{ transform: translateX(0);     opacity: 1;    }
+  85%     { opacity: 0.6; }
+  100%    { transform: translateX(10px);  opacity: 0;    }
+}
+@keyframes sf-puzzle-glow {
+  0%,  38% { filter: none; }
+  50%       { filter: drop-shadow(0 0 4px rgba(163,230,53,0.9)); }
+  64%, 100% { filter: none; }
+}
+.sf-puzzle-left  { animation: sf-puzzle-left  3.6s cubic-bezier(0.45,0.05,0.55,0.95) infinite; }
+.sf-puzzle-right { animation: sf-puzzle-right 3.6s cubic-bezier(0.45,0.05,0.55,0.95) infinite; }
+.sf-puzzle-wrap  { animation: sf-puzzle-glow  3.6s ease-in-out infinite; overflow: visible; }
+
 /* Respect reduced-motion: hold animations static for vestibular comfort. */
 @media (prefers-reduced-motion: reduce) {
   .sf-eq-bar {
@@ -373,6 +397,14 @@ html {
     animation: none !important;
     opacity: 1 !important;
     transform: none !important;
+  }
+  .sf-puzzle-left,
+  .sf-puzzle-right,
+  .sf-puzzle-wrap {
+    animation: none !important;
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    filter: none !important;
   }
   * {
     scroll-behavior: auto !important;
