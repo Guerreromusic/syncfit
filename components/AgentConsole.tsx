@@ -36,6 +36,154 @@ function MicGlyph({ className }: { className?: string }) {
   );
 }
 
+// Text-only fallback when ElevenLabs isn't configured — uses OpenRouter so the
+// Agent page is always functional. Same starters + card shell as the voice console.
+function AgentTextFallback() {
+  type Msg = { role: "user" | "assistant"; text: string };
+  const [turns, setTurns] = React.useState<Msg[]>([]);
+  const [input, setInput] = React.useState("");
+  const [busy, setBusy] = React.useState(false);
+  const [err, setErr] = React.useState<string | null>(null);
+  // If OpenRouter is also unconfigured, show a one-liner instead of a broken chat.
+  const [orAvailable, setOrAvailable] = React.useState(true);
+  const threadRef = React.useRef<HTMLDivElement>(null);
+
+  React.useEffect(() => {
+    fetch("/api/section-chat")
+      .then((r) => r.json())
+      .then((d) => setOrAvailable(Boolean(d?.configured)))
+      .catch(() => setOrAvailable(false));
+  }, []);
+
+  React.useEffect(() => {
+    threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
+  }, [turns, busy]);
+
+  async function sendText(text: string) {
+    const q = text.trim();
+    if (!q || busy) return;
+    setErr(null);
+    setInput("");
+    const next: Msg[] = [...turns, { role: "user", text: q }];
+    setTurns(next);
+    setBusy(true);
+    try {
+      const messages = next.map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.text,
+      }));
+      const res = await fetch("/api/section-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          section: "SyncFit Agent",
+          context:
+            "Help the user find, evaluate, and pitch tracks for sync placements (ads, film, TV, trailers, games, social). You understand SyncFit's scoring model: a 0–100 SyncFit Score from seven weighted factors — Brief Match (25), Lyric & Context Fit (20), Mood/Energy Fit (15), Brand Safety (15), License Readiness (10), Market Signal (10), Production Fit (5). Discuss track fit, brand-safety risks, best scenes, comparable tracks, audience, and licensing tiers (Nano, Micro, Bespoke). To run a full live score, point the user to the Research tab.",
+          messages,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setTurns([...next, { role: "assistant", text: res.ok ? data.answer : data.error || "Couldn't answer." }]);
+    } catch {
+      setErr("Network error — try again.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!orAvailable) {
+    return (
+      <div className="sf-card sf-card-pad">
+        <p className="text-sm font-semibold text-white">Agent not configured</p>
+        <p className="mt-1 text-sm text-soft">
+          Set <code className="text-purple-200">ELEVENLABS_API_KEY</code> +{" "}
+          <code className="text-purple-200">ELEVENLABS_AGENT_ID</code> for voice, or{" "}
+          <code className="text-purple-200">OPENROUTER_API_KEY</code> for text chat.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sf-card flex h-[min(72vh,640px)] flex-col overflow-hidden">
+      <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
+        <span className="inline-flex items-center gap-2">
+          <span className="relative flex h-2.5 w-2.5">
+            <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-purple-400/60" />
+          </span>
+          <span className="text-xs font-semibold text-white">SyncFit Agent</span>
+        </span>
+      </div>
+
+      <div ref={threadRef} className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        {turns.length === 0 && (
+          <div className="mx-auto max-w-md py-6 text-center">
+            <p className="text-sm text-soft">
+              Ask me about scores, briefs, brand safety, licensing, or any placement.
+            </p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {STARTERS.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  onClick={() => sendText(s)}
+                  className="rounded-full border border-white/10 bg-white/[0.03] px-3 py-1.5 text-[11px] text-soft transition hover:border-purple-400/50 hover:text-white"
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {turns.map((t, i) => (
+          <div
+            key={i}
+            className={
+              t.role === "user"
+                ? "ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-sm bg-lime-400/90 px-3.5 py-2 text-sm font-medium text-ink-950"
+                : "w-fit max-w-[88%] whitespace-pre-wrap break-words rounded-2xl rounded-bl-sm bg-white/[0.06] px-3.5 py-2 text-sm leading-relaxed text-white"
+            }
+          >
+            {t.text}
+          </div>
+        ))}
+        {busy && (
+          <div className="flex w-fit items-center gap-1.5 rounded-2xl rounded-bl-sm bg-white/[0.06] px-3.5 py-2.5">
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-200 [animation-delay:-0.2s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-200 [animation-delay:-0.1s]" />
+            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-purple-200" />
+          </div>
+        )}
+      </div>
+
+      {err && <p role="alert" className="px-4 pb-1 text-[11px] text-red-300">{err}</p>}
+
+      <form
+        onSubmit={(e) => { e.preventDefault(); sendText(input); }}
+        className="flex items-center gap-2 border-t border-white/[0.06] px-3 py-3"
+      >
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          placeholder="Ask anything about SyncFit, briefs, or licensing…"
+          aria-label="Message the SyncFit agent"
+          className="min-w-0 flex-1 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-sm text-white placeholder:text-soft focus:border-purple-400/50 focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={!input.trim() || busy}
+          aria-label="Send"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-lime-400 text-ink-950 transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100"
+        >
+          <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>
+            <path d="M3 11l18-8-8 18-2-7-8-3z" />
+          </svg>
+        </button>
+      </form>
+    </div>
+  );
+}
+
 function AgentConsoleInner() {
   const [available, setAvailable] = React.useState<boolean | null>(null);
   const [turns, setTurns] = React.useState<Turn[]>([]);
@@ -221,21 +369,10 @@ function AgentConsoleInner() {
   }
 
   if (available === null) {
-    return (
-      <div className="sf-card sf-card-pad text-sm text-soft">Loading the agent…</div>
-    );
+    return <div className="sf-card sf-card-pad text-sm text-soft">Loading…</div>;
   }
   if (!available) {
-    return (
-      <div className="sf-card sf-card-pad">
-        <p className="text-sm font-semibold text-white">Voice agent not configured</p>
-        <p className="mt-1 text-sm text-soft">
-          Set <code className="text-purple-200">ELEVENLABS_API_KEY</code> and{" "}
-          <code className="text-purple-200">ELEVENLABS_AGENT_ID</code> to enable the
-          SyncFit Agent.
-        </p>
-      </div>
-    );
+    return <AgentTextFallback />;
   }
 
   return (

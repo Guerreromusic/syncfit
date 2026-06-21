@@ -66,14 +66,29 @@ function sectionFor(p: string) {
   );
 }
 
+// Module-level cache so the probe runs only once per session.
+let chatAvailableCache: boolean | null = null;
+
 export function SectionChat() {
   const pathname = usePathname() || "/";
   const [open, setOpen] = React.useState(false);
   const [messages, setMessages] = React.useState<Msg[]>([]);
   const [input, setInput] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const [available, setAvailable] = React.useState<boolean>(chatAvailableCache ?? true);
   const threadRef = React.useRef<HTMLDivElement>(null);
   const sec = sectionFor(pathname);
+
+  // Probe OpenRouter availability once per session.
+  React.useEffect(() => {
+    if (chatAvailableCache !== null) { setAvailable(chatAvailableCache); return; }
+    let active = true;
+    fetch("/api/section-chat")
+      .then((r) => r.json())
+      .then((d) => { chatAvailableCache = Boolean(d?.configured); if (active) setAvailable(chatAvailableCache); })
+      .catch(() => { chatAvailableCache = false; if (active) setAvailable(false); });
+    return () => { active = false; };
+  }, []);
 
   React.useEffect(() => {
     threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" });
@@ -84,9 +99,9 @@ export function SectionChat() {
     setMessages([]);
   }, [sec.name]);
 
-  // Research and the Agent page are already conversational; public /share pages
-  // are chrome-free.
+  // Hide when OpenRouter isn't configured, or on pages with their own chat UI.
   if (
+    !available ||
     pathname.startsWith("/share") ||
     pathname.startsWith("/analyzer") ||
     pathname.startsWith("/agent")

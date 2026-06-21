@@ -1,7 +1,13 @@
 // POST /api/section-chat — the per-section assistant. Answers questions about
 // whatever section the user is on. Body: { section, context, messages, model? }.
+// GET  /api/section-chat — availability probe (mirrors /api/voice pattern).
 import { NextResponse } from "next/server";
 import { runSectionChat, OpenRouterNotConfiguredError } from "@/lib/api/openrouter";
+import { isConfigured } from "@/lib/env";
+
+export async function GET() {
+  return NextResponse.json({ configured: isConfigured.openrouter() });
+}
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
