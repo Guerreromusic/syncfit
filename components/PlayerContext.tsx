@@ -3,6 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import { getSpotifyPlayback, type SpotifyState } from "./spotifyPlayer";
+import { StarButton } from "./favourites";
 
 export type PlayerTrack = { id?: string; title: string; artist: string };
 
@@ -394,6 +395,10 @@ function FooterPlayer({
   const title = detail?.title || current.title;
   const artist = detail?.artist || current.artist;
   const art = detail?.artworkUrl ?? null;
+  // A real 22-char Spotify id (when the track was launched with one) so the star
+  // saved from here carries it through to the Starred section.
+  const spId =
+    current.id && /^[A-Za-z0-9]{22}$/.test(current.id) ? current.id : null;
   // Unified transport state across the two engines (Spotify full track vs preview).
   const isFull = usingSpotify;
   const hasPreviewReal = Boolean(detail?.previewUrl) && !audioError;
@@ -610,6 +615,10 @@ function FooterPlayer({
               Connect Spotify
             </button>
           )}
+          <StarButton
+            track={{ title, artist, spotifyTrackId: spId, artworkUrl: art }}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-soft transition hover:text-amber-300 aria-pressed:text-amber-300 ${FOCUS_RING}`}
+          />
           <button
             type="button"
             onClick={close}

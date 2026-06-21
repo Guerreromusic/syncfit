@@ -56,11 +56,28 @@ export async function discover(input: {
     // API TEAM: confirm each track is real via Musixmatch + enrich with real
     // metadata, drop hallucinations, re-rank on the truth.
     const tracks = await enrichRankedTracks(raw, input.brief);
+    if (tracks.length > 0) {
+      return {
+        tracks,
+        modelUsed: resolvedModel,
+        openrouterError: null,
+        usedDemoData: { openrouter: false },
+      };
+    }
+    // The model returned no usable tracks (or, on a "show 10 more", everything it
+    // suggested was already excluded). NEVER show an empty "Top 0" list — fall
+    // back to ranked picks, minus anything the user has already seen.
+    const excluded = new Set(
+      (input.exclude ?? []).map((e) => e.toLowerCase().trim()),
+    );
+    const fallback = heuristicDiscover(input.brief).filter(
+      (t) => !excluded.has(`${t.title} — ${t.artist}`.toLowerCase().trim()),
+    );
     return {
-      tracks,
-      modelUsed: resolvedModel,
+      tracks: (fallback.length ? fallback : heuristicDiscover(input.brief)).slice(0, 10),
+      modelUsed: null,
       openrouterError: null,
-      usedDemoData: { openrouter: false },
+      usedDemoData: { openrouter: true },
     };
   } catch (err) {
     // Not configured → ordinary demo mode. A real failure → surface the message.
