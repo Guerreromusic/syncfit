@@ -10,6 +10,7 @@ import { AddToArenaButton } from "./AddToArenaButton";
 import { BrandLogo } from "./BrandLogo";
 import { StarButton } from "./favourites";
 import { SparkIcon, ArrowRightIcon, PaperclipIcon, RefreshIcon } from "./icons";
+import { MicDictation } from "./MicDictation";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
@@ -391,7 +392,12 @@ export function ResearchChat() {
           }}
           className="mx-auto max-w-[920px]"
         >
-          <div className="flex items-end gap-2 rounded-2xl border border-white/10 bg-ink-900/70 px-3 py-2 focus-within:border-purple-400/60">
+          <div className="rounded-2xl border border-white/10 bg-ink-900/70 px-3 py-2 focus-within:border-purple-400/60">
+            {/* Voice input — speak your brief in English or another language */}
+            <div className="mb-1.5 flex items-center gap-1">
+              <MicDictation value={input} onChange={setInput} />
+            </div>
+            <div className="flex items-end gap-2">
             {/* Attach a PDF / Word doc */}
             <input
               ref={fileRef}
@@ -433,6 +439,7 @@ export function ResearchChat() {
             >
               {busy ? <Spinner className="h-4 w-4" /> : <ArrowRightIcon className="h-4 w-4" />}
             </button>
+            </div>
           </div>
           {attachErr ? (
             <p role="alert" className="mt-1.5 text-center text-[11px] text-red-300">
