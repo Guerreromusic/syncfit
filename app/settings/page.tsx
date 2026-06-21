@@ -65,7 +65,7 @@ export default function SettingsPage() {
       <div className="sf-card sf-card-pad">
         <p className="sf-eyebrow">Playback &amp; voice</p>
         <h2 className="mt-1 text-sm font-semibold text-white">
-          Full-track playback &amp; the voice Agent
+          Full-track playback &amp; voice
         </h2>
         <ul className="mt-3 space-y-2 text-sm text-soft">
           <li className="flex gap-2">
@@ -87,7 +87,7 @@ export default function SettingsPage() {
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
             <span>
               <span className="font-semibold text-white">ElevenLabs</span> — narrates pitches &amp;
-              results aloud and powers the hands-free Agent.
+              results aloud (read-aloud TTS).
             </span>
           </li>
         </ul>
@@ -137,9 +137,8 @@ export default function SettingsPage() {
           <li className="flex gap-2">
             <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
             <span>
-              <span className="text-white">Voice:</span> ElevenLabs — read‑aloud (TTS
-              streamed through our origin) and the hands‑free Agent (Conversational AI
-              over a signed WebSocket).
+              <span className="text-white">Voice:</span> ElevenLabs — read‑aloud TTS
+              streamed through our origin.
             </span>
           </li>
           <li className="flex gap-2">

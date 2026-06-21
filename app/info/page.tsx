@@ -77,7 +77,7 @@ const FEATURES = [
 const DATA = [
   ["Musixmatch", "Track search, metadata, language & genre (anchors the worldwide map), and a short lyric context — real-time only, never stored."],
   ["AI (via OpenRouter)", "All the reasoning — score, brand safety, pitch, the worldwide-influence map. Switchable low-cost models (GPT-5 mini default)."],
-  ["ElevenLabs", "Voice — narrates pitches & results aloud and powers the hands-free Agent (Conversational AI)."],
+  ["ElevenLabs", "Voice — narrates pitches & results aloud (read-aloud TTS)."],
   ["Songstats", "Streaming counts, market signal, and artwork."],
   ["Spotify", "Full-track playback in the player for Premium users (Connect Spotify), plus resolving pasted links & metadata."],
   ["Deezer", "Keyless 30s previews in the footer player — no account needed."],
@@ -104,10 +104,6 @@ const FAQ = [
   {
     q: "Can I play full tracks, not just a 30s preview?",
     a: "Yes — click Connect Spotify in the footer player and sign in with a Spotify Premium account; tracks then play in full via Spotify. Without Premium you get a keyless 30s preview (Deezer).",
-  },
-  {
-    q: "Can I talk to SyncFit?",
-    a: "Yes — open the Agent tab and tap the mic to ask about scores, briefs, brand safety or licensing hands-free, or just type. You can also have any pitch read aloud from its card.",
   },
 ];
 

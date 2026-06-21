@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { SparkIcon } from "./icons";
-import { VoiceAssistant } from "./VoiceAssistant";
 import type { TrackQAContext, TrackQAMessage } from "@/lib/types";
 
 const SUGGESTED = [
@@ -66,17 +65,14 @@ export function AskAI({
 
   if (!open) {
     return (
-      <span className="inline-flex flex-wrap items-center gap-1.5">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/20"
-        >
-          <SparkIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
-          {label}
-        </button>
-        <VoiceAssistant ctx={context} />
-      </span>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/20"
+      >
+        <SparkIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
+        {label}
+      </button>
     );
   }
 
@@ -93,7 +89,6 @@ export function AskAI({
           <span className="truncate">Ask AI about “{context.title}”</span>
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
-          <VoiceAssistant ctx={context} label="Talk" />
           <button
             type="button"
             onClick={() => setOpen(false)}
