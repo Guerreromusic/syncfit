@@ -16,6 +16,7 @@ import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
 import { RESEARCH_SEED_KEY, SELECTED_TRACK_KEY } from "@/lib/keys";
+import { setResearching } from "@/lib/research-state";
 import type { ScoreBreakdown } from "@/lib/types";
 import type {
   AnalyzeResult,
@@ -201,6 +202,7 @@ export function ResearchChat() {
             : "Researching the brief for the best-fitting tracks…",
       });
       setBusy(true);
+      setResearching(true);
 
       // Any provided brief text updates the running brief — so deploying a track
       // and THEN typing a brief scores that track against the NEW brief. A bare
@@ -277,6 +279,7 @@ export function ResearchChat() {
         });
       } finally {
         setBusy(false);
+        setResearching(false);
       }
     },
     [model, add, replace],
@@ -290,6 +293,7 @@ export function ResearchChat() {
       const exclude = prev.map((t) => `${t.title} — ${t.artist}`);
       const thinkingId = add({ role: "assistant", kind: "thinking", label: "Finding 10 more options…" });
       setBusy(true);
+      setResearching(true);
       const brief: Brief = { ...CHAT_BRIEF, brief: briefText };
       try {
         const res = await fetch("/api/analyze", {
@@ -325,6 +329,7 @@ export function ResearchChat() {
         replace(thinkingId, { role: "assistant", kind: "error", text: "Network error. Try again." });
       } finally {
         setBusy(false);
+        setResearching(false);
       }
     },
     [busy, model, add, replace],

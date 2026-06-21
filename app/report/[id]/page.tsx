@@ -9,6 +9,7 @@ import { BrandDNACard } from "@/components/BrandDNACard";
 import { GeoInfluenceCard } from "@/components/GeoInfluenceCard";
 import { DemographicsCard } from "@/components/DemographicsCard";
 import { AskAI } from "@/components/AskAI";
+import { GenerateBannerButton } from "@/components/GenerateBannerButton";
 import { MegaphoneIcon } from "@/components/icons";
 import type { TrackQAContext } from "@/lib/types";
 
@@ -60,6 +61,9 @@ export default async function ReportDetailPage({
       </div>
 
       <ReportCard report={report} editableId={report.id} />
+
+      {/* Campaign banner generator — one Higgsfield image per report, unlocks pitching */}
+      <GenerateBannerButton reportId={report.id} initialBannerUrl={report.bannerUrl} />
 
       {/* Natural-language Q&A — ask anything about the score / research */}
       <div className="sf-card sf-card-pad">

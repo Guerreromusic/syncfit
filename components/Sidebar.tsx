@@ -5,9 +5,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoImage } from "./Logo";
 import { NAV, isActive } from "./navItems";
+import { useIsResearching } from "@/lib/research-state";
 
 export function Sidebar() {
   const pathname = usePathname();
+  const isResearching = useIsResearching();
   const navRef = React.useRef<HTMLElement | null>(null);
   const itemRefs = React.useRef<Record<string, HTMLAnchorElement | null>>({});
   const [indicator, setIndicator] = React.useState<{
@@ -76,13 +78,21 @@ export function Sidebar() {
                   : "text-soft hover:bg-white/[0.03] hover:text-white hover:ring-1 hover:ring-inset hover:ring-white/[0.08] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]")
               }
             >
-              <Icon
-                aria-hidden
-                className={
-                  "h-[18px] w-[18px] transition-colors " +
-                  (active ? "text-lime-400" : "text-soft group-hover:text-purple-200")
-                }
-              />
+              <span className="relative shrink-0">
+                <Icon
+                  aria-hidden
+                  className={
+                    "h-[18px] w-[18px] transition-colors " +
+                    (active ? "text-lime-400" : "text-soft group-hover:text-purple-200")
+                  }
+                />
+                {/* Blinking pulse when research is running on this nav item */}
+                {isResearching && href === "/analyzer" && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_6px_2px_rgba(163,230,53,0.6)]">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-lime-400 opacity-75" />
+                  </span>
+                )}
+              </span>
               {label}
 
               {/* Hover tooltip — explains what the section holds */}
