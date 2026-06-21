@@ -159,11 +159,8 @@ export function TrendingLatin({ compact = false }: { compact?: boolean }) {
       .then((r) => r.json())
       .then((d) => {
         if (!active) return;
-        // Only rotate tracks that actually have a cover so a card never falls
-        // back to a placeholder, and preload every cover so swaps are seamless.
-        const tracks: TrendingTrack[] = (d.tracks ?? []).filter(
-          (t: TrendingTrack) => Boolean(t.artworkUrl),
-        );
+        // Preload covers so card swaps are seamless; tracks without artwork get a placeholder.
+        const tracks: TrendingTrack[] = d.tracks ?? [];
         tracks.forEach((t) => {
           if (t.artworkUrl) {
             const im = new window.Image();

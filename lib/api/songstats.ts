@@ -441,9 +441,35 @@ async function mapPool<T, R>(
 }
 
 export async function getTrendingLatin(): Promise<TrendingTrack[]> {
-  if (!isConfigured.songstats()) return [];
   if (trendingCache && Date.now() - trendingCache.ts < TRENDING_TTL_MS) {
     return trendingCache.data;
+  }
+
+  // Songstats not configured — enrich with iTunes artwork only (keyless fallback).
+  if (!isConfigured.songstats()) {
+    const results = await mapPool(
+      TRENDING_SEED.slice(0, 30),
+      8,
+      async (s): Promise<TrendingTrack> => {
+        let artworkUrl: string | null = null;
+        try {
+          const it = await getItunesPreview(s.title, s.artist);
+          artworkUrl = it?.artworkUrl ?? null;
+        } catch { /* no artwork — placeholder renders */ }
+        return {
+          title: s.title,
+          artist: s.artist,
+          artworkUrl,
+          streams: null,
+          status: "Emerging",
+          genre: s.genre,
+          spotifyTrackId: null,
+        };
+      },
+    );
+    const data = results.filter((t): t is TrendingTrack => Boolean(t));
+    trendingCache = { data, ts: Date.now() };
+    return data;
   }
 
   const results = await mapPool(
