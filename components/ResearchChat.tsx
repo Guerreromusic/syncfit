@@ -821,7 +821,7 @@ function DiscoverList({
         {tracks.map((t, i) => (
           <li key={t.title + t.artist + i} className="flex items-center gap-2.5 px-3 py-2 transition hover:bg-white/[0.02]">
             <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-soft">{i + 1}</span>
-            <TrackCover url={t.artworkUrl} className="h-9 w-9 shrink-0" />
+            <TrackCover url={t.artworkUrl} circle className="h-10 w-10 shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-semibold text-white">{t.title}</p>
               <p className="truncate text-xs text-soft">

@@ -78,8 +78,9 @@ export function ApiStatusPanel({ className }: { className?: string }) {
         <span className="sf-eyebrow">Architecture</span>
       </div>
       <p className="mb-4 text-xs leading-relaxed text-soft">
-        SyncFit calls every provider from secure server routes. Missing keys fall
-        back to clearly-labeled demo mode.
+        Every provider is called from secure server routes — keys never reach the
+        browser. With all keys set, research returns real tracks only (no demo
+        fallback).
       </p>
 
       {error && <p className="text-sm text-red-300">{error}</p>}

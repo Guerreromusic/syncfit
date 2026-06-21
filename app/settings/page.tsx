@@ -102,8 +102,61 @@ export default function SettingsPage() {
           <code className="rounded bg-ink-800 px-1.5 py-0.5 text-purple-100">
             https://syncfit-fawn.vercel.app/api/spotify/callback
           </code>
-          .
+          . Then add your Spotify account under{" "}
+          <span className="text-white">User Management</span> (the app runs in Spotify
+          development mode) and use a Premium account.
         </p>
+      </div>
+
+      {/* Architecture */}
+      <div className="sf-card sf-card-pad">
+        <p className="sf-eyebrow">Architecture</p>
+        <h2 className="mt-1 text-sm font-semibold text-white">How SyncFit is built</h2>
+        <ul className="mt-3 space-y-2 text-sm text-soft">
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+            Next.js 14 (App Router) on Vercel — every provider is called from a
+            server route, so keys never reach the browser.
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+            <span>
+              <span className="text-white">Research:</span> OpenRouter (GPT‑5 mini)
+              proposes tracks → Musixmatch verifies + adds metadata → Spotify supplies
+              album art → re‑ranked on real data. Real tracks only — no demo fallback.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+            <span>
+              <span className="text-white">Reports</span> add Songstats market signal,
+              MusicBrainz credits, and an AI worldwide‑influence map anchored on the
+              Musixmatch language.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+            <span>
+              <span className="text-white">Voice:</span> ElevenLabs — read‑aloud (TTS
+              streamed through our origin) and the hands‑free Agent (Conversational AI
+              over a signed WebSocket).
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+            <span>
+              <span className="text-white">Playback:</span> Spotify Web Playback SDK for
+              full tracks (Premium) with a keyless Deezer 30s preview fallback.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-purple-400" />
+            <span>
+              <span className="text-white">Storage:</span> saved reports & projects in
+              Vercel Blob; starred tracks live in your browser (localStorage).
+            </span>
+          </li>
+        </ul>
       </div>
     </div>
   );

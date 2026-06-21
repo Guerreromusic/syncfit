@@ -80,28 +80,28 @@ export function getApiStatuses(): ApiStatus[] {
       label: "Spotify",
       state: isConfigured.spotify() ? "connected" : "optional",
       note: isConfigured.spotify()
-        ? "Connected — metadata/BPM fallback + full-track playback (Premium · Connect Spotify)."
-        : "Optional — set SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET for metadata + full-track playback.",
+        ? "Connected — full-track playback (Connect a Premium account in Settings), result artwork, metadata & link resolving."
+        : "Optional — set SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET for full-track playback, artwork & metadata.",
     },
     {
       key: "elevenlabs",
       label: "ElevenLabs",
       state: isConfigured.elevenlabs() ? "connected" : "optional",
       note: isConfigured.elevenlabs()
-        ? "Connected — read the pitch & results aloud (text-to-speech)."
-        : "Optional — set ELEVENLABS_API_KEY to read the pitch & results aloud.",
+        ? "Connected — read pitches & results aloud + the hands-free voice Agent (Conversational AI)."
+        : "Optional — set ELEVENLABS_API_KEY for read-aloud + the voice Agent.",
     },
     {
       key: "musicbrainz",
       label: "MusicBrainz",
       state: "connected",
-      note: "Connected — writers, producers & label credits.",
+      note: "Connected — writer, producer & label credits (the rights data Spotify & Musixmatch don't expose).",
     },
     {
       key: "previews",
       label: "Previews & artwork",
       state: "connected",
-      note: "Connected — keyless iTunes / Deezer for in-app playback & cover art.",
+      note: "Connected — keyless Deezer 30s previews; album art from Spotify. (Apple Music is not used.)",
     },
     {
       key: "logos",

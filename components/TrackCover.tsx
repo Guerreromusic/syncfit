@@ -13,10 +13,14 @@ export function formatStreams(n: number | null | undefined): string | null {
 export function TrackCover({
   url,
   className = "h-14 w-14",
+  circle = false,
 }: {
   url?: string | null;
   className?: string;
+  /** Render as a circle (playlist-style research results & starred tracks). */
+  circle?: boolean;
 }) {
+  const radius = circle ? "rounded-full" : "rounded-xl";
   if (url) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
@@ -24,7 +28,7 @@ export function TrackCover({
         src={url}
         alt=""
         className={
-          "shrink-0 rounded-xl object-cover ring-1 ring-inset ring-white/10 " +
+          `shrink-0 ${radius} object-cover ring-1 ring-inset ring-white/10 ` +
           className
         }
         loading="lazy"
@@ -35,7 +39,7 @@ export function TrackCover({
   return (
     <div
       className={
-        "flex shrink-0 items-center justify-center rounded-xl bg-purple-600/15 text-purple-200 ring-1 ring-inset ring-white/10 " +
+        `flex shrink-0 items-center justify-center ${radius} bg-purple-600/15 text-purple-200 ring-1 ring-inset ring-white/10 ` +
         className
       }
     >

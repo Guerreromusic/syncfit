@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
 import { PlayerProvider } from "@/components/PlayerContext";
 import { SectionChat } from "@/components/SectionChat";
+import { SpotifyConnectToast } from "@/components/SpotifyConnectToast";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -37,6 +38,7 @@ export default function RootLayout({
         </div>
         {/* Per-section assistant — chat about whatever page you're on */}
         <SectionChat />
+        <SpotifyConnectToast />
       </body>
     </html>
   );

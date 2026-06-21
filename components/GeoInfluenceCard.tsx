@@ -153,10 +153,10 @@ export function GeoInfluenceCard({
         <p className="mb-3 text-sm leading-relaxed text-soft">{data.summary}</p>
       )}
 
-      {/* Map + reasons, side by side on large screens to keep the card compact. */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-5">
+      {/* Map full-width on top, the region % breakdown stacked below it. */}
+      <div className="space-y-4">
         {/* Interactive map */}
-        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-ink-950/60 lg:col-span-3">
+        <div className="relative overflow-hidden rounded-xl border border-white/10 bg-ink-950/60">
           <svg
             viewBox={`0 0 ${MAP_W} ${MAP_H}`}
             className="block w-full"
@@ -297,8 +297,9 @@ export function GeoInfluenceCard({
           </div>
         </div>
 
-        {/* Why it resonates — by region (synced to the map) */}
-        <ul className="space-y-1.5 lg:col-span-2">
+        {/* Why it resonates — by region (synced to the map), in a compact grid
+            below the full-width map. */}
+        <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
           {regions.map((r) => {
             const isActive = active === r.id;
             return (
