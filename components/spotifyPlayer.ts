@@ -83,11 +83,25 @@ class SpotifyPlaybackManager {
     if ((window as any).Spotify) return Promise.resolve();
     if (this.sdkLoading) return this.sdkLoading;
     this.sdkLoading = new Promise<void>((resolve, reject) => {
-      (window as any).onSpotifyWebPlaybackSDKReady = () => resolve();
+      let settled = false;
+      const finish = (err?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (err) {
+          this.sdkLoading = null; // let a future retry re-attempt the load
+          reject(err);
+        } else {
+          resolve();
+        }
+      };
+      // Don't hang forever if the SDK script is blocked and never fires onerror.
+      const timer = setTimeout(() => finish(new Error("Spotify SDK timed out")), 12000);
+      (window as any).onSpotifyWebPlaybackSDKReady = () => finish();
       const s = document.createElement("script");
       s.src = SDK_SRC;
       s.async = true;
-      s.onerror = () => reject(new Error("Failed to load Spotify SDK"));
+      s.onerror = () => finish(new Error("Failed to load Spotify SDK"));
       document.body.appendChild(s);
     });
     return this.sdkLoading;
@@ -106,7 +120,10 @@ class SpotifyPlaybackManager {
       try {
         await this.loadSdk();
       } catch {
-        this.set({ error: "Couldn’t load the Spotify player" });
+        this.set({
+          error:
+            "Couldn’t load Spotify’s player — disable ad/tracker blockers for this site, then retry. (Playing the 30s preview meanwhile.)",
+        });
         return false;
       }
       const Spotify = (window as any).Spotify;

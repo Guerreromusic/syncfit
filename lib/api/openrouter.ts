@@ -26,6 +26,8 @@ import {
 import type {
   AudioReadiness,
   Brief,
+  Demographics,
+  AgeBand,
   GeoInfluence,
   GeoRegion,
   MarketSignal,
@@ -639,6 +641,105 @@ Map this track's worldwide influence by region, with a short reason for each (le
   return {
     summary: typeof raw?.summary === "string" ? raw.summary : "",
     regions,
+  };
+}
+
+// =============================================================================
+// DEMOGRAPHICS — aggregate LISTENER audience read (ages, cultural/faith
+// resonance, appeal) for a sync placement, anchored on the Musixmatch language.
+// =============================================================================
+
+const AGE_LABELS = ["13–17", "18–24", "25–34", "35–44", "45+"];
+
+export async function runDemographics(input: {
+  title: string;
+  artist: string;
+  language?: string;
+  genre?: string;
+  model?: string;
+}): Promise<Demographics> {
+  if (!isConfigured.openrouter()) throw new OpenRouterNotConfiguredError();
+  const model = isAllowedModel(input.model) ? input.model : env.openrouterModel();
+
+  const system = `You are a music-audience analyst for sync placements. Given a track plus its LANGUAGE and genre, estimate the aggregate LISTENER demographics — who the audience is — so a supervisor can judge fit, targeting and brand safety.
+
+Anchor on the song's LANGUAGE and genre first, then the artist's known fanbase. These are AGGREGATE audience estimates, never about individuals — be realistic and respectful.
+
+Return ONLY a single JSON object:
+{
+  "summary": string,        // one sentence on the core audience
+  "ageBands": [             // age distribution; shares are percentages that sum to ~100
+    { "label": one of: ${AGE_LABELS.join(", ")}, "share": number }
+  ],
+  "faithResonance": string, // ONE respectful sentence on cultural/faith communities the music resonates with, for placement & brand-safety context (aggregate, never judgmental). Use "" if not notable.
+  "appeal": [string]        // 3-5 short points on who it appeals to and why (values, mood, lifestyle, scenes)
+}
+Use ONLY those exact age labels. No markdown, no commentary, no extra fields.`;
+
+  const user = `TRACK: "${input.title}" by ${input.artist}${input.genre ? ` — genre: ${input.genre}` : ""}${input.language ? ` — language: ${input.language}` : ""}
+
+Estimate the aggregate listener demographics (ages, cultural/faith resonance, appeal).`;
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${env.openrouter()}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://synclat.com",
+      "X-Title": "SyncFit by Synclat",
+    },
+    body: JSON.stringify({
+      model,
+      reasoning: { effort: "low" },
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await safeText(res);
+    throw new Error(`OpenRouter HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+  }
+  const json = await res.json();
+  const content: string | undefined = json?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned an empty response");
+
+  const raw: any = parseAnalysisJson(content);
+  const allowed = new Set<string>(AGE_LABELS);
+  let ageBands: AgeBand[] = Array.isArray(raw?.ageBands)
+    ? raw.ageBands
+        .filter((b: any) => b && allowed.has(b.label))
+        .map((b: any) => ({
+          label: String(b.label),
+          share: Math.max(0, Math.min(100, Math.round(Number(b.share) || 0))),
+        }))
+        .filter(
+          (b: AgeBand, i: number, arr: AgeBand[]) =>
+            arr.findIndex((x) => x.label === b.label) === i,
+        )
+    : [];
+  // Keep canonical age order.
+  ageBands = AGE_LABELS.map((l) => ageBands.find((b) => b.label === l)).filter(
+    (b): b is AgeBand => Boolean(b),
+  );
+
+  const appeal: string[] = Array.isArray(raw?.appeal)
+    ? raw.appeal
+        .filter((a: any) => typeof a === "string" && a.trim())
+        .map((a: string) => a.trim())
+        .slice(0, 5)
+    : [];
+
+  return {
+    summary: typeof raw?.summary === "string" ? raw.summary : "",
+    ageBands,
+    faithResonance: typeof raw?.faithResonance === "string" ? raw.faithResonance : "",
+    appeal,
   };
 }
 

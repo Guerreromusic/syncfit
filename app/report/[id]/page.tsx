@@ -7,6 +7,7 @@ import { AddToArenaButton } from "@/components/AddToArenaButton";
 import { LyricTranslationCard } from "@/components/LyricTranslationCard";
 import { BrandDNACard } from "@/components/BrandDNACard";
 import { GeoInfluenceCard } from "@/components/GeoInfluenceCard";
+import { DemographicsCard } from "@/components/DemographicsCard";
 import { AskAI } from "@/components/AskAI";
 import { MegaphoneIcon } from "@/components/icons";
 import type { TrackQAContext } from "@/lib/types";
@@ -80,6 +81,14 @@ export default async function ReportDetailPage({
 
       {/* Worldwide influence map — self-hides when AI is not configured */}
       <GeoInfluenceCard
+        title={report.track.title}
+        artist={report.track.artist}
+        language={report.track.language}
+        genre={report.track.genre}
+      />
+
+      {/* Audience demographics — self-hides when AI is not configured */}
+      <DemographicsCard
         title={report.track.title}
         artist={report.track.artist}
         language={report.track.language}

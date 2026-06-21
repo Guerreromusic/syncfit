@@ -72,6 +72,20 @@ export type GeoInfluence = {
   regions: GeoRegion[];
 };
 
+/** Aggregate LISTENER demographics for a track (AI estimate, anchored on the
+ * Musixmatch language/genre) — used for a minimal audience-analytics card. */
+export type AgeBand = { label: string; share: number };
+export type Demographics = {
+  summary: string;
+  /** Age distribution; shares roughly sum to 100. */
+  ageBands: AgeBand[];
+  /** One respectful, aggregate note on cultural / faith resonance for placement
+   * context. Empty when not notable. */
+  faithResonance: string;
+  /** 3–5 short points on who the track appeals to and why. */
+  appeal: string[];
+};
+
 /** Credits & rights (MusicBrainz, keyless) — not available via Spotify's API. */
 export type TrackCredits = {
   writers?: string[]; // composers / lyricists / songwriters
