@@ -6,7 +6,6 @@ import {
   ArrowRightIcon,
   MegaphoneIcon,
   WaveIcon,
-  ChatBotIcon,
   ListMusicIcon,
 } from "@/components/icons";
 
@@ -42,11 +41,6 @@ const FEATURES = [
     icon: ShieldIcon,
     title: "Brand safety + pitch",
     body: "A Low / Medium / High suitability read plus a supervisor-ready pitch and best-for placement ideas.",
-  },
-  {
-    icon: ChatBotIcon,
-    title: "Voice Agent",
-    body: "Talk hands-free — or type — to your SyncFit agent about scores, briefs, brand safety and licensing, grounded in the scoring model. Powered by ElevenLabs Conversational AI.",
   },
   {
     icon: WaveIcon,

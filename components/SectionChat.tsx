@@ -100,12 +100,7 @@ export function SectionChat() {
   }, [sec.name]);
 
   // Hide when OpenRouter isn't configured, or on pages with their own chat UI.
-  if (
-    !available ||
-    pathname.startsWith("/share") ||
-    pathname.startsWith("/analyzer") ||
-    pathname.startsWith("/agent")
-  )
+  if (!available || pathname.startsWith("/share") || pathname.startsWith("/analyzer"))
     return null;
 
   async function send(q: string) {

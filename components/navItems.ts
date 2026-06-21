@@ -9,7 +9,6 @@ import {
   TrophyIcon,
   GridIcon,
   StarIcon,
-  ChatBotIcon,
 } from "./icons";
 
 export const NAV = [
@@ -24,12 +23,6 @@ export const NAV = [
     label: "Research",
     icon: FlaskIcon,
     desc: "Deploy research on a brief to surface the 10 best-fitting tracks — or score one you name.",
-  },
-  {
-    href: "/agent",
-    label: "Agent",
-    icon: ChatBotIcon,
-    desc: "Talk or type to your SyncFit AI partner — scores, briefs, brand safety & licensing, hands-free.",
   },
   {
     href: "/report",
