@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { SavedReport } from "@/lib/types";
 import { ArchiveButton } from "./ArchiveButton";
+import { DeleteForeverButton } from "./DeleteForeverButton";
 import { AddToArenaButton } from "./AddToArenaButton";
 import { TrackCover } from "./TrackCover";
 import { SpotifyPlay } from "./SpotifyPlay";
@@ -93,6 +94,14 @@ export function ReportListItem({ report: r }: { report: SavedReport }) {
             iconOnly
           />
           <ArchiveButton id={r.id} archived={Boolean(r.archived)} iconOnly />
+          {r.archived && (
+            <DeleteForeverButton
+              id={r.id}
+              name={r.name?.trim() || r.track.title}
+              kind="pitch"
+              iconOnly
+            />
+          )}
         </div>
       </div>
     </div>

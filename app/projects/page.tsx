@@ -2,6 +2,7 @@ import Link from "next/link";
 import { listReports, listProjects } from "@/lib/storage";
 import { CreatePitchProject, type ProjectOption } from "@/components/CreatePitchProject";
 import { ArchiveButton } from "@/components/ArchiveButton";
+import { DeleteForeverButton } from "@/components/DeleteForeverButton";
 import { TrackCover } from "@/components/TrackCover";
 import { BrandLogo } from "@/components/BrandLogo";
 import { StarButton } from "@/components/favourites";
@@ -37,12 +38,22 @@ function ProjectCard({ p }: { p: PitchProject }) {
           Open project
           <ArrowRightIcon className="h-3.5 w-3.5" />
         </span>
-        <ArchiveButton
-          id={p.id}
-          archived={Boolean(p.archived)}
-          endpoint={`/api/pitch-projects/${p.id}`}
-          className="rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-soft transition hover:border-purple-400/50 hover:text-white disabled:opacity-50"
-        />
+        <span className="flex items-center gap-1.5">
+          <ArchiveButton
+            id={p.id}
+            archived={Boolean(p.archived)}
+            endpoint={`/api/pitch-projects/${p.id}`}
+            className="rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-soft transition hover:border-purple-400/50 hover:text-white disabled:opacity-50"
+          />
+          {p.archived && (
+            <DeleteForeverButton
+              id={p.id}
+              name={p.name}
+              kind="project"
+              endpoint={`/api/pitch-projects/${p.id}`}
+            />
+          )}
+        </span>
       </div>
     </div>
   );
@@ -101,6 +112,13 @@ function PitchTrackCard({ r }: { r: SavedReport }) {
             archived={Boolean(r.archived)}
             className="rounded-lg border border-white/15 bg-white/[0.03] px-2.5 py-1 text-[11px] font-semibold text-soft transition hover:border-purple-400/50 hover:text-white disabled:opacity-50"
           />
+          {r.archived && (
+            <DeleteForeverButton
+              id={r.id}
+              name={r.name?.trim() || r.track.title}
+              kind="pitch"
+            />
+          )}
         </div>
       </div>
     </div>

@@ -6,6 +6,7 @@ import type { SavedReport } from "@/lib/types";
 import { ReportListItem } from "./ReportListItem";
 import { AddToArenaButton } from "./AddToArenaButton";
 import { ArchiveButton } from "./ArchiveButton";
+import { DeleteForeverButton } from "./DeleteForeverButton";
 import { TrackCover } from "./TrackCover";
 import { SpotifyPlay } from "./SpotifyPlay";
 import { StarButton } from "./favourites";
@@ -189,6 +190,14 @@ function ReportRow({ report: r, divider }: { report: SavedReport; divider: boole
           iconOnly
         />
         <ArchiveButton id={r.id} archived={Boolean(r.archived)} iconOnly />
+        {r.archived && (
+          <DeleteForeverButton
+            id={r.id}
+            name={r.name?.trim() || r.track.title}
+            kind="pitch"
+            iconOnly
+          />
+        )}
       </div>
     </li>
   );
