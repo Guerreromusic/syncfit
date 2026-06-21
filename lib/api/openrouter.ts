@@ -747,6 +747,145 @@ Estimate the aggregate listener demographics (ages, cultural/faith resonance, ap
 }
 
 // =============================================================================
+// WORLD INTELLIGENCE — unified geo + demographics in one call, providing rich
+// per-territory detail (religion, age skew, top brands, competitors, market notes)
+// plus global audience demographics. Anchored on Musixmatch language + genre.
+// =============================================================================
+
+export async function runWorldIntelligence(input: {
+  title: string;
+  artist: string;
+  language?: string;
+  genre?: string;
+  model?: string;
+}): Promise<Omit<import("../types").WorldIntelligence, "available">> {
+  if (!isConfigured.openrouter()) throw new OpenRouterNotConfiguredError();
+  const model = isAllowedModel(input.model) ? input.model : env.openrouterModel();
+
+  const system = `You are a music-market analyst and audience researcher for sync placements. Given a track plus its LANGUAGE and genre, produce a SINGLE unified JSON object combining worldwide geo influence with rich per-territory detail AND global audience demographics.
+
+Anchor geo reasoning on the song's LANGUAGE first (where that language is natively spoken AND its diaspora), then layer genre popularity, cultural/religious themes, and the artist's known reach. For demographics, anchor on the language and genre to estimate the aggregate listener audience.
+
+Return ONLY a single JSON object:
+{
+  "summary": string,         // one sentence on the track's global footprint and core audience
+  "regions": [               // 3 to 8 regions, strongest first
+    {
+      "id": one of: ${GEO_REGION_IDS.join(", ")},
+      "strength": number,    // 0-100 influence
+      "reason": string,      // short WHY — language, diaspora, genre, culture
+      "religion": string,    // dominant faith context, e.g. "Predominantly Catholic, Protestant minorities"
+      "ageSkew": string,     // core demographic, e.g. "18–34 core, 35–44 secondary"
+      "topBrands": [string], // exactly 2-3 brand categories or real companies active in this market
+      "competitors": [string], // exactly 2-3 sync competitor artist names in this territory
+      "marketNotes": string  // one-line sync opportunity note for this territory
+    }
+  ],
+  "ageBands": [              // global age distribution; shares roughly sum to 100
+    { "label": one of: ${AGE_LABELS.join(", ")}, "share": number }
+  ],
+  "faithResonance": string,  // ONE respectful sentence on cultural/faith communities globally for placement context. Use "" if not notable.
+  "appeal": [string]         // 3-5 short points on who the track appeals to globally and why
+}
+Use ONLY the exact region ids and age labels listed above. No markdown, no commentary, no extra fields.`;
+
+  const user = `TRACK: "${input.title}" by ${input.artist}${input.genre ? ` — genre: ${input.genre}` : ""}${input.language ? ` — language: ${input.language}` : ""}
+
+Produce the unified world intelligence object: geo regions with rich territory detail, plus global audience demographics.`;
+
+  const res = await fetch(OPENROUTER_URL, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      Authorization: `Bearer ${env.openrouter()}`,
+      "Content-Type": "application/json",
+      "HTTP-Referer": "https://synclat.com",
+      "X-Title": "SyncFit by Synclat",
+    },
+    body: JSON.stringify({
+      model,
+      reasoning: { effort: "low" },
+      temperature: 0.4,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const detail = await safeText(res);
+    throw new Error(`OpenRouter HTTP ${res.status}${detail ? `: ${detail}` : ""}`);
+  }
+  const json = await res.json();
+  const content: string | undefined = json?.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned an empty response");
+
+  const raw: any = parseAnalysisJson(content);
+
+  const allowedRegions = new Set<string>(GEO_REGION_IDS);
+  const regions: import("../types").RegionDetail[] = Array.isArray(raw?.regions)
+    ? raw.regions
+        .filter((r: any) => r && allowedRegions.has(r.id))
+        .map((r: any) => ({
+          id: String(r.id),
+          strength: Math.max(0, Math.min(100, Math.round(Number(r.strength) || 0))),
+          reason: typeof r.reason === "string" ? r.reason : "",
+          religion: typeof r.religion === "string" ? r.religion : "",
+          ageSkew: typeof r.ageSkew === "string" ? r.ageSkew : "",
+          topBrands: Array.isArray(r.topBrands)
+            ? r.topBrands.filter((b: any) => typeof b === "string").slice(0, 3)
+            : [],
+          competitors: Array.isArray(r.competitors)
+            ? r.competitors.filter((c: any) => typeof c === "string").slice(0, 3)
+            : [],
+          marketNotes: typeof r.marketNotes === "string" ? r.marketNotes : "",
+        }))
+        .filter(
+          (r: import("../types").RegionDetail, i: number, arr: import("../types").RegionDetail[]) =>
+            arr.findIndex((x) => x.id === r.id) === i,
+        )
+        .sort(
+          (a: import("../types").RegionDetail, b: import("../types").RegionDetail) =>
+            b.strength - a.strength,
+        )
+    : [];
+
+  const allowedAges = new Set<string>(AGE_LABELS);
+  let ageBands: AgeBand[] = Array.isArray(raw?.ageBands)
+    ? raw.ageBands
+        .filter((b: any) => b && allowedAges.has(b.label))
+        .map((b: any) => ({
+          label: String(b.label),
+          share: Math.max(0, Math.min(100, Math.round(Number(b.share) || 0))),
+        }))
+        .filter(
+          (b: AgeBand, i: number, arr: AgeBand[]) =>
+            arr.findIndex((x) => x.label === b.label) === i,
+        )
+    : [];
+  ageBands = AGE_LABELS.map((l) => ageBands.find((b) => b.label === l)).filter(
+    (b): b is AgeBand => Boolean(b),
+  );
+
+  const appeal: string[] = Array.isArray(raw?.appeal)
+    ? raw.appeal
+        .filter((a: any) => typeof a === "string" && a.trim())
+        .map((a: string) => a.trim())
+        .slice(0, 5)
+    : [];
+
+  return {
+    summary: typeof raw?.summary === "string" ? raw.summary : "",
+    regions,
+    ageBands,
+    faithResonance: typeof raw?.faithResonance === "string" ? raw.faithResonance : "",
+    appeal,
+  };
+}
+
+// =============================================================================
 // TRACK Q&A — per-card "Ask AI": answer a supervisor's questions about ONE track
 // for a sync placement. Plain-text answers (not JSON), short and practical.
 // =============================================================================

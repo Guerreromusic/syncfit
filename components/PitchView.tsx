@@ -4,8 +4,7 @@ import { ScoreBreakdown } from "./ScoreBreakdown";
 import { CreditsCard } from "./CreditsCard";
 import { LyricTranslationCard } from "./LyricTranslationCard";
 import { BrandDNACard } from "./BrandDNACard";
-import { GeoInfluenceCard } from "./GeoInfluenceCard";
-import { DemographicsCard } from "./DemographicsCard";
+import { WorldInfluenceCard } from "./WorldInfluenceCard";
 import { MegaphoneIcon } from "./icons";
 import type { SavedReport } from "@/lib/types";
 
@@ -99,14 +98,8 @@ export function PitchView({
         artist={report.track.artist}
       />
 
-      {/* Worldwide influence map + audience demographics */}
-      <GeoInfluenceCard
-        title={report.track.title}
-        artist={report.track.artist}
-        language={report.track.language}
-        genre={report.track.genre}
-      />
-      <DemographicsCard
+      {/* World intelligence — map + demographics unified; self-hides when AI is not configured */}
+      <WorldInfluenceCard
         title={report.track.title}
         artist={report.track.artist}
         language={report.track.language}

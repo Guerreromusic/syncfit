@@ -86,6 +86,26 @@ export type Demographics = {
   appeal: string[];
 };
 
+export type RegionDetail = {
+  id: string;
+  strength: number;
+  reason: string;
+  religion: string;
+  ageSkew: string;
+  topBrands: string[];
+  competitors: string[];
+  marketNotes: string;
+};
+
+export type WorldIntelligence = {
+  available: boolean;
+  summary: string;
+  regions: RegionDetail[];
+  ageBands: AgeBand[];
+  faithResonance: string;
+  appeal: string[];
+};
+
 /** Credits & rights (MusicBrainz, keyless) — not available via Spotify's API. */
 export type TrackCredits = {
   writers?: string[]; // composers / lyricists / songwriters
