@@ -123,22 +123,19 @@ async function enrichRankedTracks(
   brief: Brief,
 ): Promise<RankedTrack[]> {
   const enriched = await mapLimit(tracks, 6, (t) => enrichOne(t, brief));
-  // Drop CONFIRMED hallucinations (the catalogue answered and the track isn't
-  // real). Tracks that merely couldn't be checked (rate-limit/outage) are KEPT.
-  // Keep the top 10 surviving real/quality tracks, ranked on real data.
-  const real = enriched.filter((e) => !e.fake).map((e) => e.track);
-  real.sort((a, b) => b.syncFitScore - a.syncFitScore);
-  return real.slice(0, 10);
+  // NEVER drop a real recommendation. The iTunes (US) catalogue misses many
+  // regional / brand-new / trending tracks, so an unverifiable track is KEPT
+  // (just lightly demoted), not removed — absence from one catalogue is NOT proof
+  // a track is fake. Quality comes from the prompt (real, notable tracks) +
+  // re-scoring on real data; verified tracks rank first.
+  enriched.sort((a, b) => b.syncFitScore - a.syncFitScore);
+  return enriched.slice(0, 10);
 }
 
-async function enrichOne(
-  t: RankedTrack,
-  brief: Brief,
-): Promise<{ track: RankedTrack; fake: boolean }> {
+async function enrichOne(t: RankedTrack, brief: Brief): Promise<RankedTrack> {
   let title = t.title;
   let artist = t.artist;
   let verified = false;
-  let fake = false;
   let artworkUrl: string | null = t.artworkUrl ?? null;
 
   // 1) MUSIXMATCH — real catalogue + metadata. Only accept an actual TITLE match
@@ -159,9 +156,10 @@ async function enrichOne(
     artist = mxm.artist;
     artworkUrl = mxm.artworkUrl ?? artworkUrl;
   } else {
-    // 2) iTunes existence check — authoritative commercial catalogue. Distinguish
-    //    "not in catalogue" (almost certainly an AI hallucination → DROP) from a
-    //    failed/inconclusive lookup (→ keep the track, just unverified).
+    // 2) iTunes existence check (keyless). When it confirms the track, take its
+    //    canonical title/artist + artwork. When it can't, KEEP the track anyway —
+    //    the US catalogue isn't a global source of truth, so a miss must never
+    //    discard a real regional / new / trending recommendation.
     const st = await verifyTrackStatus(t.title, t.artist).catch(
       () => ({ status: "error" as const }),
     );
@@ -170,8 +168,6 @@ async function enrichOne(
       title = st.title ?? title;
       artist = st.artist ?? artist;
       artworkUrl = st.artworkUrl ?? artworkUrl;
-    } else if (st.status === "not-found") {
-      fake = true;
     }
   }
 
@@ -193,27 +189,24 @@ async function enrichOne(
   }
   if (mxm?.explicit && brief.brandSafety === "Strict") score -= 16; // explicit vs strict
   if (typeof mxm?.popularity === "number") score += (mxm.popularity - 50) * 0.06; // recognizable helps
-  if (!verified) score -= 4; // unverified — slight discount
+  if (!verified) score -= 4; // unverified — slight discount, never a drop
   score = Math.round(clamp(score));
 
   return {
-    track: {
-      ...t,
-      title,
-      artist,
-      syncFitScore: score,
-      scoreLabel: labelForScore(score),
-      verified,
-      genre: mxm?.genre ?? t.genre,
-      explicit: mxm?.explicit,
-      popularity: mxm?.popularity,
-      language: realLang,
-      streams,
-      marketStatus,
-      spotifyTrackId,
-      artworkUrl,
-    },
-    fake,
+    ...t,
+    title,
+    artist,
+    syncFitScore: score,
+    scoreLabel: labelForScore(score),
+    verified,
+    genre: mxm?.genre ?? t.genre,
+    explicit: mxm?.explicit,
+    popularity: mxm?.popularity,
+    language: realLang,
+    streams,
+    marketStatus,
+    spotifyTrackId,
+    artworkUrl,
   };
 }
 

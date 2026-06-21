@@ -3,9 +3,10 @@
 // =============================================================================
 // Used when the user runs a brief WITHOUT naming a track: the model recommends
 // the best-fitting tracks worldwide, scored with the SyncFit model and ranked
-// highest → lowest. Every suggestion is then verified against the Musixmatch /
-// iTunes catalogues and any track that doesn't exist is dropped, so the prompt
-// over-requests candidates to guarantee a full set of real, quality results.
+// highest → lowest. Every suggestion is verified against the Musixmatch / iTunes
+// catalogues to canonicalize its title/artist and rank verified tracks first
+// (real tracks are NEVER dropped — a regional/new track absent from one
+// catalogue is still kept). The prompt over-requests candidates for quality.
 // No lyrics.
 // =============================================================================
 
@@ -20,7 +21,7 @@ Score each track 0-100 using the SyncFit model and RANK them highest → lowest:
 ${SCORE_MODEL.map((c) => `  - ${c.label}: max ${c.max}`).join("\n")}
 
 Rules:
-- ACCURACY IS EVERYTHING. Recommend ONLY real, commercially-released tracks that you are CERTAIN exist with the EXACT title and EXACT primary artist. Every track is checked against the Musixmatch / iTunes catalogues and any that can't be found is DISCARDED — so a wrong title or wrong artist is wasted. Never invent songs, never guess, never fabricate, never attribute a real song to the wrong artist.
+- ACCURACY IS EVERYTHING. Recommend ONLY real, commercially-released tracks that you are CERTAIN exist with the EXACT title and EXACT primary artist. Verified tracks rank first, so a wrong title or wrong artist wastes a slot. Never invent songs, never guess, never fabricate, never attribute a real song to the wrong artist.
 - QUALITY BAR: recommend notable, recognizable tracks — charting hits, catalogue staples, or well-known works by established artists. Avoid obscure deep cuts, unreleased demos, AI-uncertain titles, and anything you are not confident is real and clearable. A pitchable, famous-enough track beats an obscure one.
 - RELEVANCE BEATS FAME: every track must genuinely fit the brief's intent — the placement/use-case, mood & energy, language, region/market, and brand-safety level. If the brief implies a specific scene or feeling, the song must actually deliver it. A famous song that does NOT fit the brief is WRONG.
 - Respect hard constraints: if a preferred language is given, prefer tracks in that language; if brand safety is strict, avoid explicit tracks.
@@ -44,7 +45,7 @@ OUTPUT RULES (critical):
     }
   ]
 }
-- Provide 16 tracks, already sorted by syncFitScore descending. Only real tracks survive verification, so do not pad the list with uncertain guesses.`;
+- Provide 16 tracks, already sorted by syncFitScore descending. Unverifiable tracks are demoted, so do not pad the list with uncertain guesses.`;
 
 export function buildDiscoverUserPrompt(brief: Brief, exclude?: string[]): string {
   const avoid =
@@ -64,5 +65,5 @@ Brand safety level requested: ${brief.brandSafety}
 License tier: ${brief.licenseTier}${avoid}
 
 TASK
-Recommend the 16 best-fitting REAL tracks for this brief — from any country, language, or genre — scored with the SyncFit model and ranked highest → lowest. Only verifiable tracks are kept, so choose ones you are certain exist with the exact title + primary artist. Return ONLY the JSON object described in the system prompt.`;
+Recommend the 16 best-fitting REAL tracks for this brief — from any country, language, or genre — scored with the SyncFit model and ranked highest → lowest. Choose tracks you are certain exist with the exact title + primary artist. Return ONLY the JSON object described in the system prompt.`;
 }
