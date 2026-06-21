@@ -46,6 +46,11 @@ export default async function ReportDetailPage({
           ← Score reports
         </Link>
         <div className="flex flex-wrap items-center gap-2">
+          <GenerateBannerButton
+            reportId={report.id}
+            initialBannerUrl={report.bannerUrl}
+            compact
+          />
           <AddToArenaButton
             brief={report.brief.brief}
             title={report.track.title}
@@ -61,9 +66,6 @@ export default async function ReportDetailPage({
       </div>
 
       <ReportCard report={report} editableId={report.id} />
-
-      {/* Campaign banner generator — one Higgsfield image per report, unlocks pitching */}
-      <GenerateBannerButton reportId={report.id} initialBannerUrl={report.bannerUrl} />
 
       {/* Natural-language Q&A — ask anything about the score / research */}
       <div className="sf-card sf-card-pad">

@@ -316,6 +316,51 @@ html {
     0 0 0 3px rgba(163, 230, 53, 0.55);
 }
 
+/* =========================================================================
+   Pitch light mode — clean white presentation theme
+   Override the dark design-system tokens when .pitch-light-mode is active.
+   Parent-class + child-class specificity (0,2,0) beats Tailwind utilities (0,1,0).
+   ========================================================================= */
+.pitch-light-mode {
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+.pitch-light-mode .sf-card {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06), 0 0 0 0;
+}
+.pitch-light-mode .text-white {
+  color: #0f172a;
+}
+.pitch-light-mode .text-soft {
+  color: #64748b;
+}
+/* Score-bar track */
+.pitch-light-mode .bg-ink-700\/70 {
+  background-color: #e2e8f0;
+}
+/* Chip / pill backgrounds */
+.pitch-light-mode .bg-white\/\[0\.03\] {
+  background-color: #f1f5f9;
+}
+/* Border overrides */
+.pitch-light-mode .border-white\/\[0\.06\] { border-color: #e2e8f0; }
+.pitch-light-mode .border-white\/\[0\.07\] { border-color: #e2e8f0; }
+.pitch-light-mode .border-white\/\[0\.08\] { border-color: #e2e8f0; }
+.pitch-light-mode .border-white\/10       { border-color: #e2e8f0; }
+.pitch-light-mode .border-white\/15       { border-color: #e2e8f0; }
+.pitch-light-mode .border-white\/20       { border-color: #d1dae8; }
+/* Input field */
+.pitch-light-mode .sf-input {
+  background-color: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+.pitch-light-mode .sf-input::placeholder {
+  color: #94a3b8;
+}
+
 /* Respect reduced-motion: hold animations static for vestibular comfort. */
 @media (prefers-reduced-motion: reduce) {
   .sf-eq-bar {

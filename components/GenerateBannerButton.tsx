@@ -5,9 +5,11 @@ import * as React from "react";
 export function GenerateBannerButton({
   reportId,
   initialBannerUrl,
+  compact = false,
 }: {
   reportId: string;
   initialBannerUrl?: string;
+  compact?: boolean;
 }) {
   const [bannerUrl, setBannerUrl] = React.useState<string | undefined>(initialBannerUrl);
   const [loading, setLoading] = React.useState(false);
@@ -36,6 +38,51 @@ export function GenerateBannerButton({
     }
   }
 
+  /* ── COMPACT MODE (top action bar) ─────────────────────────── */
+  if (compact) {
+    if (bannerUrl) {
+      return (
+        <span className="inline-flex items-center gap-1.5 rounded-lg border border-lime-400/30 bg-lime-400/10 px-3 py-2 text-[13px] font-semibold text-lime-300">
+          <CheckIcon className="h-4 w-4" />
+          Banner ready
+        </span>
+      );
+    }
+    return (
+      <div className="flex flex-col items-start gap-1">
+        <button
+          type="button"
+          onClick={generate}
+          disabled={loading}
+          className={
+            "inline-flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 " +
+            (error
+              ? "bg-red-500/10 text-red-300 ring-1 ring-inset ring-red-500/30 hover:bg-red-500/20"
+              : "bg-gradient-to-r from-purple-600 to-lime-500 text-white shadow-sm hover:opacity-90 active:scale-95")
+          }
+        >
+          {loading ? (
+            <>
+              <Spinner className="h-4 w-4" />
+              Generating…
+            </>
+          ) : error ? (
+            <>
+              <WarningIcon className="h-4 w-4" />
+              Retry banner
+            </>
+          ) : (
+            <>
+              <ImageSparkIcon className="h-4 w-4" />
+              Generate banner
+            </>
+          )}
+        </button>
+      </div>
+    );
+  }
+
+  /* ── FULL MODE (standalone card below ReportCard — kept for backwards-compat) ── */
   if (bannerUrl) {
     return (
       <div className="overflow-hidden rounded-2xl border border-white/10">
@@ -106,7 +153,12 @@ export function GenerateBannerButton({
 
 function Spinner({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" className={(className ?? "h-4 w-4") + " animate-spin"} fill="none" aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      className={(className ?? "h-4 w-4") + " animate-spin"}
+      fill="none"
+      aria-hidden
+    >
       <circle cx="12" cy="12" r="9" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
       <path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
     </svg>
@@ -115,11 +167,56 @@ function Spinner({ className }: { className?: string }) {
 
 function ImageSparkIcon({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className={className ?? "h-4 w-4"} aria-hidden>
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+      aria-hidden
+    >
       <rect x="3" y="3" width="18" height="18" rx="3" />
       <circle cx="8.5" cy="8.5" r="1.5" />
       <path d="m21 15-5-5L5 21" />
       <path d="m17 3 1.5 3L22 7.5 18.5 9 17 12l-1.5-3L12 7.5 15.5 6z" />
+    </svg>
+  );
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+      aria-hidden
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function WarningIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.8}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className ?? "h-4 w-4"}
+      aria-hidden
+    >
+      <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+      <line x1="12" y1="9" x2="12" y2="13" />
+      <line x1="12" y1="17" x2="12.01" y2="17" />
     </svg>
   );
 }
