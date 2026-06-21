@@ -197,37 +197,6 @@ function FooterPlayer({
   const trackTitle = current?.title;
   const trackArtist = current?.artist;
 
-  // — Draggable player: grab the grip to move the capsule anywhere; the position
-  //   persists, and double-clicking the grip re-docks it to the footer. —
-  const capsuleRef = React.useRef<HTMLDivElement>(null);
-  const dragRef = React.useRef<{ dx: number; dy: number } | null>(null);
-  const [pos, setPos] = React.useState<{ x: number; y: number } | null>(null);
-
-  const clampPos = React.useCallback((p: { x: number; y: number }) => {
-    if (typeof window === "undefined") return p;
-    const cap = capsuleRef.current;
-    const w = cap?.offsetWidth ?? 360;
-    const h = cap?.offsetHeight ?? 64;
-    const maxX = Math.max(8, window.innerWidth - w - 8);
-    const maxY = Math.max(8, window.innerHeight - h - 8);
-    return { x: Math.max(8, Math.min(p.x, maxX)), y: Math.max(8, Math.min(p.y, maxY)) };
-  }, []);
-
-  React.useEffect(() => {
-    try {
-      const raw = localStorage.getItem("syncfit:player:pos");
-      if (raw) {
-        const p = JSON.parse(raw);
-        if (typeof p?.x === "number" && typeof p?.y === "number") setPos(clampPos(p));
-      }
-    } catch {
-      /* ignore */
-    }
-    const onResize = () => setPos((cur) => (cur ? clampPos(cur) : cur));
-    window.addEventListener("resize", onResize);
-    return () => window.removeEventListener("resize", onResize);
-  }, [clampPos]);
-
   // Detect Spotify config/session + subscribe to live playback state.
   React.useEffect(() => {
     sp.current = getSpotifyPlayback();
@@ -477,76 +446,16 @@ function FooterPlayer({
   }
 
   return (
-    // A slim rounded capsule, CENTERED in the content area (right of the sidebar).
-    // Single minimal row: play on the LEFT, then art/meta, scrubber, volume, close.
-    // `--sf-player-bottom` (set by the Research page) floats it above a docked footer.
+    // The music player is ALWAYS docked at the footer (bottom of the screen). On
+    // the Research page the search bar sits just above it and the results above
+    // that — a clean static stack (see ResearchChat, which measures this element
+    // via `data-sf-player`).
     <div
-      className={
-        pos
-          ? "fixed z-50"
-          : "fixed left-3 right-3 z-50 flex justify-center lg:left-[280px]"
-      }
-      style={
-        pos
-          ? { left: pos.x, top: pos.y, width: "min(920px, calc(100vw - 1rem))" }
-          : { bottom: "var(--sf-player-bottom, 1rem)" }
-      }
+      data-sf-player
+      className="fixed left-3 right-3 z-50 flex justify-center lg:left-[280px]"
+      style={{ bottom: "var(--sf-player-bottom, 1rem)" }}
     >
-      <div
-        ref={capsuleRef}
-        className="sf-liquid relative flex w-full max-w-[920px] items-center gap-2 overflow-hidden rounded-full border border-white/10 px-2.5 py-1.5 shadow-2xl shadow-black/40 sm:gap-3 sm:px-4"
-      >
-        {/* Drag grip — move the player anywhere; double-click to re-dock */}
-        <button
-          type="button"
-          aria-label="Drag the player (double-click to dock)"
-          title="Drag to move · double-click to dock"
-          onPointerDown={(e) => {
-            const cap = capsuleRef.current;
-            if (!cap) return;
-            try {
-              (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-            } catch {
-              /* unsupported pointer id */
-            }
-            const rect = cap.getBoundingClientRect();
-            dragRef.current = { dx: e.clientX - rect.left, dy: e.clientY - rect.top };
-          }}
-          onPointerMove={(e) => {
-            const d = dragRef.current;
-            if (!d) return;
-            setPos(clampPos({ x: e.clientX - d.dx, y: e.clientY - d.dy }));
-          }}
-          onPointerUp={(e) => {
-            try {
-              (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
-            } catch {
-              /* ignore */
-            }
-            dragRef.current = null;
-            setPos((p) => {
-              if (p) {
-                try {
-                  localStorage.setItem("syncfit:player:pos", JSON.stringify(p));
-                } catch {
-                  /* ignore */
-                }
-              }
-              return p;
-            });
-          }}
-          onDoubleClick={() => {
-            setPos(null);
-            try {
-              localStorage.removeItem("syncfit:player:pos");
-            } catch {
-              /* ignore */
-            }
-          }}
-          className={`flex h-7 w-4 shrink-0 touch-none cursor-grab items-center justify-center text-soft/70 transition hover:text-white active:cursor-grabbing ${FOCUS_RING}`}
-        >
-          <GripIcon />
-        </button>
+      <div className="sf-liquid relative flex w-full max-w-[920px] items-center gap-2.5 overflow-hidden rounded-full border border-white/10 px-3 py-1.5 shadow-2xl shadow-black/40 sm:gap-3 sm:px-4">
         {/* Mobile-only seek bar pinned to the top edge (desktop has the full scrubber). */}
         {isReady && hasPreview && (
           <input
@@ -744,18 +653,6 @@ function FooterPlayer({
 }
 
 // — inline transport icons —
-function GripIcon() {
-  return (
-    <svg viewBox="0 0 16 16" className="h-4 w-4" fill="currentColor" aria-hidden>
-      <circle cx="6" cy="4" r="1.3" />
-      <circle cx="10" cy="4" r="1.3" />
-      <circle cx="6" cy="8" r="1.3" />
-      <circle cx="10" cy="8" r="1.3" />
-      <circle cx="6" cy="12" r="1.3" />
-      <circle cx="10" cy="12" r="1.3" />
-    </svg>
-  );
-}
 function PlayIcon() {
   return (
     <svg viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor" aria-hidden>

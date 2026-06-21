@@ -107,6 +107,7 @@ export function ResearchChat() {
   const chatBoxRef = React.useRef<HTMLDivElement | null>(null);
   const { current: playerCurrent } = usePlayer(); // is the footer player visible?
   const [chatH, setChatH] = React.useState<number | null>(null);
+  const [barBottom, setBarBottom] = React.useState(0); // search-bar offset above the player
 
   // A track "deployed" from Trending/Dashboard is LOCKED as the selected track:
   // the next brief the user types is scored against THIS track, not a discovery.
@@ -403,32 +404,38 @@ export function ResearchChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Footer layout strategy — the docked search bar is height-VARIABLE (voice row,
-  // locked-track pill, multi-line input, errors). Measure it and derive the rest
-  // so the music player, the search bar, and the chat results NEVER clash:
-  //   • the player floats just ABOVE the bar (--sf-player-bottom = barH + gap)
-  //   • the chat area ends above whichever footer element is highest (player when
-  //     a track is loaded — it sits above the bar — otherwise the bar itself).
+  // Footer stack — a clean STATIC layout, bottom → top:
+  //   1) music player  (always docked at the footer, via --sf-player-bottom)
+  //   2) search bar    (sits just ABOVE the player)
+  //   3) results       (scroll, ABOVE the search bar)
+  // The bar is height-variable (voice row, locked-track pill, multi-line input)
+  // and the player only shows when a track is loaded, so we measure both and
+  // size each element to respect the others — nothing ever overlaps.
   React.useEffect(() => {
     const GAP = 12;
-    const PLAYER_H = 76; // footer player capsule + clearance
     function measure() {
       const bar = barRef.current;
       if (!bar) return;
       const barH = bar.offsetHeight;
-      const playerBottom = barH + GAP;
-      document.documentElement.style.setProperty("--sf-player-bottom", `${playerBottom}px`);
+      // The player is docked at the bottom; measure its footprint so the bar can
+      // sit just above it. (0 when no track is loaded → bar docks to the floor.)
+      const playerEl = playerCurrent
+        ? (document.querySelector("[data-sf-player]") as HTMLElement | null)
+        : null;
+      const playerReserve = playerEl
+        ? Math.max(0, Math.round(window.innerHeight - playerEl.getBoundingClientRect().top + GAP))
+        : 0;
+      setBarBottom(playerReserve);
       const box = chatBoxRef.current;
       if (box) {
         const top = box.getBoundingClientRect().top;
-        const reserve = playerBottom + (playerCurrent ? PLAYER_H + GAP : 0);
+        const reserve = playerReserve + barH + GAP; // player + bar + gap
         setChatH(Math.max(240, Math.round(window.innerHeight - top - reserve)));
       }
     }
     measure();
-    // Re-measure on the next frame too — the player capsule mounts a tick after
-    // `current` is set, so this guarantees its offset is correct the moment it
-    // appears mid-research (capsule never flashes behind the bar).
+    // Re-measure next frame — the player capsule mounts a tick after `current` is
+    // set, so this catches its size the moment it appears mid-research.
     const raf = requestAnimationFrame(measure);
     const ro =
       typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
@@ -438,18 +445,8 @@ export function ResearchChat() {
       cancelAnimationFrame(raf);
       ro?.disconnect();
       window.removeEventListener("resize", measure);
-      // NOTE: do NOT clear --sf-player-bottom here — this cleanup also runs when
-      // the player appears/disappears (playerCurrent dep). Clearing it would drop
-      // the capsule behind the bar for a frame. It's cleared on unmount below.
     };
   }, [playerCurrent]);
-
-  // Reset the player offset only when leaving the Research page.
-  React.useEffect(() => {
-    return () => {
-      document.documentElement.style.removeProperty("--sf-player-bottom");
-    };
-  }, []);
 
   return (
     <>
@@ -484,10 +481,11 @@ export function ResearchChat() {
         </div>
       </div>
 
-      {/* Search bar — DOCKED to the footer (right of the sidebar) */}
+      {/* Search bar — sits just ABOVE the docked music player (static stack) */}
       <div
         ref={barRef}
-        className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.06] bg-ink-950/90 px-4 py-3 backdrop-blur-md lg:left-[280px]"
+        style={{ bottom: barBottom }}
+        className="fixed inset-x-0 z-40 border-t border-white/[0.06] bg-ink-950/95 px-4 py-3 backdrop-blur-md lg:left-[280px]"
       >
         <form
           onSubmit={(e) => {
