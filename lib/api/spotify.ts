@@ -162,6 +162,25 @@ export async function getSpotifyMetadata(params: {
   }
 }
 
+/** Find a Spotify track URI by title/artist via the app token — used by the Web
+ *  Playback SDK for full-track playback. Returns null when unconfigured/no match. */
+export async function searchSpotifyTrackUri(
+  title: string,
+  artist: string,
+): Promise<string | null> {
+  if (!isConfigured.spotify() || !title.trim()) return null;
+  try {
+    const token = await getToken();
+    if (!token) return null;
+    const q = encodeURIComponent(`${title} ${artist}`.trim());
+    const search = await spotifyGet(`/search?q=${q}&type=track&limit=1`, token);
+    const id = search?.tracks?.items?.[0]?.id;
+    return id ? `spotify:track:${id}` : null;
+  } catch {
+    return null;
+  }
+}
+
 /** Extract a Spotify track id from a URL or URI (returns null if none). */
 export function extractSpotifyTrackId(text: string): string | null {
   if (!text) return null;

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { usePathname } from "next/navigation";
+import { getSpotifyPlayback, type SpotifyState } from "./spotifyPlayer";
 
 export type PlayerTrack = { id?: string; title: string; artist: string };
 
@@ -182,8 +183,42 @@ function FooterPlayer({
   // If the preview audio can't decode (rare codec gaps), show a graceful state.
   const [audioError, setAudioError] = React.useState(false);
 
+  // — Spotify full-track engine (opt-in). When the listener is connected, a play
+  //   press tries Spotify for the FULL track; any miss falls back to the 30s
+  //   preview below — so the keyless player is unchanged when Spotify is absent. —
+  const sp = React.useRef<ReturnType<typeof getSpotifyPlayback> | null>(null);
+  const [spConfigured, setSpConfigured] = React.useState(false);
+  const [spConnected, setSpConnected] = React.useState(false);
+  const spConnectedRef = React.useRef(false);
+  const [usingSpotify, setUsingSpotify] = React.useState(false);
+  const usingSpotifyRef = React.useRef(false);
+  const [spState, setSpState] = React.useState<SpotifyState | null>(null);
+
   const trackTitle = current?.title;
   const trackArtist = current?.artist;
+
+  // Detect Spotify config/session + subscribe to live playback state.
+  React.useEffect(() => {
+    sp.current = getSpotifyPlayback();
+    let active = true;
+    fetch("/api/spotify/token", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => {
+        if (!active) return;
+        setSpConfigured(Boolean(d?.configured));
+        const conn = Boolean(d?.hasSession);
+        setSpConnected(conn);
+        spConnectedRef.current = conn;
+      })
+      .catch(() => {});
+    const unsub = sp.current.subscribe((s) => {
+      if (active) setSpState(s);
+    });
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, []);
 
   // Resolve preview URL + artwork whenever the track identity changes.
   React.useEffect(() => {
@@ -218,42 +253,135 @@ function FooterPlayer({
     };
   }, [trackTitle, trackArtist, setPlaying]);
 
-  // Start playback when the user PRESSED a play/next/prev control (playToken
-  // bumped) and the preview has resolved. This never auto-plays on page load or
-  // auto-advances at track end — the player is only ever loaded by an explicit
-  // user gesture, and that gesture is what bumps the token.
   const playedTokenRef = React.useRef(playToken);
+
+  // Play the resolved 30s preview through <audio> (the default / fallback
+  // engine). No-op while Spotify is handling the current track.
+  const playPreview = React.useCallback(
+    (token: number) => {
+      const a = audioRef.current;
+      if (!a || usingSpotifyRef.current) return;
+      if (!loaded || !detail?.previewUrl) return; // resolve effect retries on load
+      playedTokenRef.current = token;
+      a.volume = vol;
+      a.muted = muted;
+      a.currentTime = 0;
+      a.play()
+        .then(() => setPlaying(true))
+        .catch(() => setPlaying(false));
+    },
+    [loaded, detail?.previewUrl, vol, muted, setPlaying],
+  );
+
+  // Resolve a Spotify track URI for a track (known 22-char id, else search).
+  const resolveUri = React.useCallback(
+    async (t: PlayerTrack): Promise<string | null> => {
+      try {
+        const p = new URLSearchParams();
+        if (t.id && /^[A-Za-z0-9]{22}$/.test(t.id)) p.set("id", t.id);
+        p.set("title", t.title);
+        p.set("artist", t.artist || "");
+        const r = await fetch(`/api/spotify/uri?${p.toString()}`, { cache: "no-store" });
+        const d = await r.json();
+        return typeof d?.uri === "string" ? d.uri : null;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
+  // Full-track engine: on a fresh play press (token bumped), try Spotify first
+  // when connected. Optimistically claims the token so the preview engine waits;
+  // on ANY miss (no URI / not premium / error) it releases to the preview.
+  const spTokenRef = React.useRef(playToken);
+  React.useEffect(() => {
+    if (playToken === spTokenRef.current) return;
+    spTokenRef.current = playToken;
+    if (!current) return;
+    if (!spConnectedRef.current) {
+      usingSpotifyRef.current = false;
+      setUsingSpotify(false);
+      return;
+    }
+    usingSpotifyRef.current = true;
+    setUsingSpotify(true);
+    const token = playToken;
+    const trackForToken = current;
+    let cancelled = false;
+    (async () => {
+      const uri = await resolveUri(trackForToken);
+      if (cancelled) return;
+      const ok = uri && sp.current ? await sp.current.playUri(uri) : false;
+      if (cancelled) return;
+      if (ok) {
+        const a = audioRef.current;
+        if (a && !a.paused) a.pause(); // no double audio
+        setPlaying(true);
+      } else {
+        usingSpotifyRef.current = false;
+        setUsingSpotify(false);
+        playPreview(token);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playToken]);
+
+  // Preview engine: play once the preview resolves, for a fresh play press that
+  // Spotify isn't handling. Never auto-plays on load (gated on the token).
   React.useEffect(() => {
     const a = audioRef.current;
-    if (!a || !loaded || !detail?.previewUrl) return; // wait for the preview
-    if (playToken === playedTokenRef.current) return; // no fresh play intent
+    if (!a || !loaded || !detail?.previewUrl) return;
+    if (usingSpotifyRef.current) return; // Spotify owns this track
+    if (playToken === playedTokenRef.current) return;
     playedTokenRef.current = playToken;
     a.volume = vol;
     a.muted = muted;
     a.currentTime = 0;
     a.play()
       .then(() => setPlaying(true))
-      .catch(() => setPlaying(false)); // blocked → user can hit play in the bar
+      .catch(() => setPlaying(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [playToken, loaded, detail?.previewUrl]);
 
-  // Keep the element's volume / mute in sync with the controls.
+  // Mirror Spotify's paused state into the shared `playing` flag. Keyed on the
+  // paused flag only (not the whole state, which ticks position every second).
+  React.useEffect(() => {
+    if (usingSpotify && spState) setPlaying(!spState.paused);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usingSpotify, spState?.paused, setPlaying]);
+
+  // Keep volume / mute in sync with the active engine.
   React.useEffect(() => {
     const a = audioRef.current;
     if (a) {
       a.volume = vol;
       a.muted = muted;
     }
-  }, [vol, muted]);
+    if (usingSpotifyRef.current) sp.current?.setVolume(muted ? 0 : vol);
+  }, [vol, muted, usingSpotify]);
 
-  // Never let a track keep playing onto a page the user navigated to: pause on
-  // every route change. Playback only ever resumes when the user presses play.
+  // Never let a track keep playing onto a page the user navigated to: pause both
+  // engines on route change. Playback only ever resumes on a play press.
   const pathname = usePathname();
   React.useEffect(() => {
     const a = audioRef.current;
     if (a && !a.paused) a.pause();
+    if (usingSpotifyRef.current) sp.current?.pause();
     setPlaying(false);
   }, [pathname, setPlaying]);
+
+  // Closing the player (queue cleared) must also stop the Spotify device.
+  React.useEffect(() => {
+    if (!current && usingSpotifyRef.current) {
+      sp.current?.pause();
+      usingSpotifyRef.current = false;
+      setUsingSpotify(false);
+    }
+  }, [current]);
 
   // Expose play/pause to the context so ANY play control can toggle this track.
   React.useEffect(() => {
@@ -266,10 +394,21 @@ function FooterPlayer({
   const title = detail?.title || current.title;
   const artist = detail?.artist || current.artist;
   const art = detail?.artworkUrl ?? null;
-  const hasPreview = Boolean(detail?.previewUrl) && !audioError;
-  const pct = dur > 0 ? (time / dur) * 100 : 0;
+  // Unified transport state across the two engines (Spotify full track vs preview).
+  const isFull = usingSpotify;
+  const hasPreviewReal = Boolean(detail?.previewUrl) && !audioError;
+  const hasPreview = isFull ? true : hasPreviewReal; // is there anything to play?
+  const isReady = isFull ? true : loaded;
+  const dispTime = isFull && spState ? spState.positionMs / 1000 : time;
+  const dispDur = isFull && spState ? spState.durationMs / 1000 : dur;
+  const pct = dispDur > 0 ? (dispTime / dispDur) * 100 : 0;
+  const spErr = spState?.error ?? null;
 
   function toggle() {
+    if (usingSpotifyRef.current) {
+      sp.current?.toggle();
+      return;
+    }
     const a = audioRef.current;
     if (!a) return;
     if (a.paused) {
@@ -282,6 +421,11 @@ function FooterPlayer({
     }
   }
   function seek(v: number) {
+    if (usingSpotifyRef.current) {
+      sp.current?.seek(v * 1000);
+      setTime(v);
+      return;
+    }
     const a = audioRef.current;
     if (a) a.currentTime = v;
     setTime(v);
@@ -289,13 +433,16 @@ function FooterPlayer({
   // Spotify-style previous: restart if we're past 3s or there's no earlier
   // track, otherwise jump to the previous track in the queue.
   function onPrev() {
-    const a = audioRef.current;
-    if (hasPrev && (!a || a.currentTime <= 3)) prev();
+    const pos = usingSpotifyRef.current ? dispTime : audioRef.current?.currentTime ?? 0;
+    if (hasPrev && pos <= 3) prev();
     else seek(0);
   }
   function onEnded() {
     // Stop at the end — never auto-advance into the next track.
     setPlaying(false);
+  }
+  function connectSpotify() {
+    window.location.href = "/api/spotify/login";
   }
 
   return (
@@ -308,18 +455,18 @@ function FooterPlayer({
     >
       <div className="sf-liquid relative flex w-full max-w-[920px] items-center gap-2.5 overflow-hidden rounded-full border border-white/10 px-3 py-1.5 shadow-2xl shadow-black/40 sm:gap-3 sm:px-4">
         {/* Mobile-only seek bar pinned to the top edge (desktop has the full scrubber). */}
-        {loaded && hasPreview && (
+        {isReady && hasPreview && (
           <input
             type="range"
             min={0}
-            max={dur || 30}
+            max={dispDur || 30}
             step={0.1}
-            value={time}
+            value={dispTime}
             onChange={(e) => seek(Number(e.target.value))}
             style={sliderFill(pct)}
             className="sf-range absolute inset-x-0 top-0 sm:hidden"
             aria-label="Seek"
-            aria-valuetext={`${fmt(time)} of ${fmt(dur || 30)}`}
+            aria-valuetext={`${fmt(dispTime)} of ${fmt(dispDur || 30)}`}
           />
         )}
 
@@ -337,11 +484,11 @@ function FooterPlayer({
           <button
             type="button"
             onClick={toggle}
-            disabled={!loaded || !hasPreview}
+            disabled={!isReady || !hasPreview}
             aria-label={playing ? "Pause" : "Play"}
             className={`flex h-8 w-8 items-center justify-center rounded-full bg-white text-ink-950 transition hover:scale-105 disabled:opacity-40 disabled:hover:scale-100 ${FOCUS_RING}`}
           >
-            {!loaded || (buffering && playing) ? (
+            {!isReady || (buffering && playing && !isFull) ? (
               <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-ink-950/30 border-t-ink-950" />
             ) : playing ? (
               <PauseIcon />
@@ -385,31 +532,38 @@ function FooterPlayer({
           <div className="min-w-0">
             <p className="truncate text-[13px] font-semibold leading-tight text-white">{title}</p>
             <p className="truncate text-[11px] leading-tight text-soft">{artist}</p>
+            {isFull ? (
+              <p className="mt-0.5 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-wide text-lime-300">
+                <span className="h-1 w-1 rounded-full bg-lime-400" /> Full track · Spotify
+              </p>
+            ) : spErr ? (
+              <p className="mt-0.5 truncate text-[9px] text-amber-300">{spErr}</p>
+            ) : null}
           </div>
         </div>
 
         {/* Scrubber (desktop) */}
-        {!loaded ? (
+        {!isReady ? (
           <div className="hidden flex-1 items-center gap-2 text-[11px] text-soft sm:flex">
             <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
             Loading…
           </div>
         ) : hasPreview ? (
           <div className="hidden flex-1 items-center gap-2 sm:flex">
-            <span className="w-8 text-right text-[10px] tabular-nums text-soft">{fmt(time)}</span>
+            <span className="w-8 text-right text-[10px] tabular-nums text-soft">{fmt(dispTime)}</span>
             <input
               type="range"
               min={0}
-              max={dur || 30}
+              max={dispDur || 30}
               step={0.1}
-              value={time}
+              value={dispTime}
               onChange={(e) => seek(Number(e.target.value))}
               style={sliderFill(pct)}
               className="sf-range flex-1"
               aria-label="Seek"
-              aria-valuetext={`${fmt(time)} of ${fmt(dur || 30)}`}
+              aria-valuetext={`${fmt(dispTime)} of ${fmt(dispDur || 30)}`}
             />
-            <span className="w-8 text-[10px] tabular-nums text-soft">{fmt(dur || 30)}</span>
+            <span className="w-8 text-[10px] tabular-nums text-soft">{fmt(dispDur || 30)}</span>
           </div>
         ) : (
           <span className="hidden flex-1 text-[11px] text-soft sm:block">Preview unavailable</span>
@@ -417,7 +571,7 @@ function FooterPlayer({
 
         {/* RIGHT: volume + close */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-2.5">
-          {loaded && hasPreview && (
+          {isReady && hasPreview && (
             <div className="hidden items-center gap-1.5 md:flex">
               <button
                 type="button"
@@ -444,6 +598,16 @@ function FooterPlayer({
               />
             </div>
           )}
+          {spConfigured && !spConnected && (
+            <button
+              type="button"
+              onClick={connectSpotify}
+              title="Connect Spotify Premium to play full tracks"
+              className={`hidden shrink-0 items-center gap-1 rounded-full border border-lime-400/40 bg-lime-400/10 px-2.5 py-1 text-[11px] font-semibold text-lime-300 transition hover:bg-lime-400/20 sm:inline-flex ${FOCUS_RING}`}
+            >
+              Connect Spotify
+            </button>
+          )}
           <button
             type="button"
             onClick={close}
@@ -454,7 +618,7 @@ function FooterPlayer({
           </button>
         </div>
 
-        {loaded && hasPreview && (
+        {!isFull && hasPreviewReal && (
           <audio
             ref={audioRef}
             src={detail!.previewUrl!}

@@ -70,8 +70,8 @@ export function getApiStatuses(): ApiStatus[] {
       label: "Spotify",
       state: isConfigured.spotify() ? "connected" : "optional",
       note: isConfigured.spotify()
-        ? "Connected — metadata & BPM fallback enabled."
-        : "Optional — set SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET to fill missing metadata.",
+        ? "Connected — metadata/BPM fallback + full-track playback (Premium · Connect Spotify)."
+        : "Optional — set SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET for metadata + full-track playback.",
     },
     {
       key: "musicbrainz",
