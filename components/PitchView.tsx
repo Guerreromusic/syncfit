@@ -13,11 +13,14 @@ export function PitchView({
   report,
   accentColor,
   accentLight,
+  isPublic = false,
 }: {
   report: SavedReport;
   /** Hex/CSS color from the pitch theme — used for accent borders & headings. */
   accentColor?: string;
   accentLight?: string;
+  /** On public /share pages: hide the ShareButton and private creative brief. */
+  isPublic?: boolean;
 }) {
   const accentStyle = accentColor
     ? {
@@ -61,16 +64,18 @@ export function PitchView({
             </p>
           </div>
         </div>
-        <ShareButton
-          shareEndpoint={`/api/reports/${report.id}/share`}
-          sharePrefix="/share/"
-          initialToken={report.shareToken}
-          label="Pitch"
-        />
+        {!isPublic && (
+          <ShareButton
+            shareEndpoint={`/api/reports/${report.id}/share`}
+            sharePrefix="/share/"
+            initialToken={report.shareToken}
+            label="Pitch"
+          />
+        )}
       </div>
 
       {/* Pitch summary card */}
-      <PitchCard report={report} />
+      <PitchCard report={report} public={isPublic} />
 
       {/* Full 7-factor score breakdown */}
       <div className="sf-card sf-card-pad" style={accentStyle}>

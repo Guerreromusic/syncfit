@@ -74,7 +74,7 @@ export async function PATCH(
   }
 
   return NextResponse.json(
-    { error: "Body must include `name` (string) or `archived` (boolean)." },
+    { error: "Body must include `name` (string), `archived` (boolean), or `bannerUrl` (string)." },
     { status: 400 },
   );
 }

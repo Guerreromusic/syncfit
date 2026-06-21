@@ -1,12 +1,15 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogoImage } from "./Logo";
 import { NAV, isActive } from "./navItems";
+import { useIsResearching } from "@/lib/research-state";
 
 export function Topbar() {
   const pathname = usePathname();
+  const isResearching = useIsResearching();
 
   // Hidden on public pitch-share pages (see Sidebar).
   if (pathname.startsWith("/share")) return null;
@@ -45,10 +48,17 @@ export function Topbar() {
                   : "text-soft hover:bg-white/[0.04] hover:text-white")
               }
             >
-              <Icon
-                aria-hidden
-                className={"h-4 w-4 " + (active ? "text-lime-400" : "text-soft")}
-              />
+              <span className="relative shrink-0">
+                <Icon
+                  aria-hidden
+                  className={"h-4 w-4 " + (active ? "text-lime-400" : "text-soft")}
+                />
+                {isResearching && href === "/analyzer" && (
+                  <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-lime-400 shadow-[0_0_6px_2px_rgba(163,230,53,0.6)]">
+                    <span className="absolute inset-0 animate-ping rounded-full bg-lime-400 opacity-75" />
+                  </span>
+                )}
+              </span>
               {label}
             </Link>
           );
