@@ -18,7 +18,7 @@ function getSessionId(): string {
 
 export function AnalyticsTracker() {
   const pathname = usePathname();
-  const startRef = useRef<number>(Date.now());
+  const lastPingRef = useRef<number>(Date.now());
   const sessionIdRef = useRef<string>("");
 
   // Initialize session ID once on mount
@@ -30,33 +30,37 @@ export function AnalyticsTracker() {
     const sessionId = sessionIdRef.current;
     if (!sessionId || sessionId === "unknown") return;
 
-    // Reset start time for this route
-    startRef.current = Date.now();
+    // Reset ping timer for this route
+    lastPingRef.current = Date.now();
 
-    // Immediate POST on route entry
+    // Immediate POST on route entry (0 delta — just registers the page visit)
     fetch("/api/analytics/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sessionId, path: pathname, seconds: 0 }),
     }).catch(() => {/* best-effort */});
 
-    // 30s heartbeat interval
+    // 30s heartbeat — send DELTA since last ping to avoid double-counting
     const interval = setInterval(() => {
-      const elapsed = Math.floor((Date.now() - startRef.current) / 1000);
+      const now = Date.now();
+      const delta = Math.floor((now - lastPingRef.current) / 1000);
+      lastPingRef.current = now;
       navigator.sendBeacon(
         "/api/analytics/session",
-        JSON.stringify({ sessionId, path: pathname, seconds: elapsed }),
+        JSON.stringify({ sessionId, path: pathname, seconds: delta }),
       );
     }, 30_000);
 
-    // Cleanup: fire final beacon with elapsed seconds
+    // Cleanup: send remaining delta since last ping
     return () => {
       clearInterval(interval);
-      const elapsed = Math.floor((Date.now() - startRef.current) / 1000);
-      navigator.sendBeacon(
-        "/api/analytics/session",
-        JSON.stringify({ sessionId, path: pathname, seconds: elapsed }),
-      );
+      const delta = Math.floor((Date.now() - lastPingRef.current) / 1000);
+      if (delta > 0) {
+        navigator.sendBeacon(
+          "/api/analytics/session",
+          JSON.stringify({ sessionId, path: pathname, seconds: delta }),
+        );
+      }
     };
   }, [pathname]);
 

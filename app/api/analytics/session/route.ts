@@ -76,6 +76,7 @@ export async function GET() {
         city: s.city,
         firstSeen: s.firstSeen,
         totalSeconds: s.totalSeconds,
+        pages: s.pages,
       })),
       recentSessions: recent,
     });
