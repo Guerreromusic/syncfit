@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { WaveIcon, RocketIcon } from "./icons";
-import { RESEARCH_SEED_KEY } from "@/lib/keys";
+import { WaveIcon } from "./icons";
 import { usePlayer, type PlayerTrack } from "./PlayerContext";
 import { StarButton } from "./favourites";
 import type { TrendingTrack } from "@/lib/types";
@@ -13,18 +12,6 @@ function trackId(t: { spotifyTrackId?: string | null; title: string; artist: str
 }
 
 const ROTATE_MS = 2000; // one card swaps every 2s → each card refreshes every ~10s
-
-function deployTrending(t: TrendingTrack) {
-  try {
-    sessionStorage.setItem(
-      RESEARCH_SEED_KEY,
-      JSON.stringify({ title: t.title, artist: t.artist, brief: null }),
-    );
-  } catch {
-    /* ignore */
-  }
-  window.location.href = "/analyzer";
-}
 
 function TrendingCard({
   track,
@@ -92,16 +79,6 @@ function TrendingCard({
       </div>
       <p className="mt-1 truncate text-[11px] font-semibold leading-tight text-white">{track.title}</p>
       <p className="truncate text-[10px] leading-tight text-soft">{track.artist}</p>
-      <button
-        type="button"
-        onClick={() => deployTrending(track)}
-        title={`Deploy research on “${track.title}”`}
-        aria-label={`Deploy research on ${track.title}`}
-        className="mt-1 inline-flex w-full items-center justify-center gap-0.5 rounded border border-white/10 bg-white/[0.03] py-0.5 text-[10px] font-semibold text-soft transition hover:border-purple-400/50 hover:text-white"
-      >
-        <RocketIcon className="h-2.5 w-2.5" aria-hidden />
-        Deploy
-      </button>
     </div>
   );
 }
@@ -152,15 +129,6 @@ function TrendingCapsule({
         <svg viewBox="0 0 24 24" className="h-3 w-3" fill="currentColor" aria-hidden>
           <path d="M8 5v14l11-7z" />
         </svg>
-      </button>
-      <button
-        type="button"
-        onClick={() => deployTrending(track)}
-        title={`Deploy research on “${track.title}”`}
-        aria-label={`Deploy research on ${track.title}`}
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/[0.06] text-soft transition hover:bg-purple-500/40 hover:text-white"
-      >
-        <RocketIcon className="h-3 w-3" aria-hidden />
       </button>
     </div>
   );
