@@ -8,7 +8,6 @@ import { LyricTranslationCard } from "@/components/LyricTranslationCard";
 import { BrandDNACard } from "@/components/BrandDNACard";
 import { GeoInfluenceCard } from "@/components/GeoInfluenceCard";
 import { AskAI } from "@/components/AskAI";
-import { SuggestedAlternatives } from "@/components/SuggestedAlternatives";
 import { MegaphoneIcon } from "@/components/icons";
 import type { TrackQAContext } from "@/lib/types";
 
@@ -85,12 +84,6 @@ export default async function ReportDetailPage({
         artist={report.track.artist}
         language={report.track.language}
         genre={report.track.genre}
-      />
-
-      {/* Suggested tracks — at the very end */}
-      <SuggestedAlternatives
-        alternatives={report.analysis.suggestedAlternatives}
-        brief={report.brief}
       />
     </div>
   );
