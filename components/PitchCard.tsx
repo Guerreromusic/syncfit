@@ -5,6 +5,7 @@ import { TrackCover, StreamsBadge } from "./TrackCover";
 import { SpotifyPlay } from "./SpotifyPlay";
 import { BrandLogo } from "./BrandLogo";
 import { StarButton } from "./favourites";
+import { ReadAloud } from "./ReadAloud";
 import { CheckIcon } from "./icons";
 
 function MetaPill({ label, value }: { label: string; value: React.ReactNode }) {
@@ -126,7 +127,10 @@ export function PitchCard({
 
       {/* The pitch */}
       <div className="border-t border-white/[0.06] px-5 py-5 sm:px-6">
-        <p className="sf-eyebrow mb-2">The pitch</p>
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <p className="sf-eyebrow">The pitch</p>
+          <ReadAloud text={analysis.pitchSummary} label="Read aloud" />
+        </div>
         <p className="text-sm leading-relaxed text-soft">{analysis.pitchSummary}</p>
         {analysis.bestUseCases?.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-1.5">

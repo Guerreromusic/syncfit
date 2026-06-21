@@ -24,6 +24,10 @@ export const env = {
   songstats: () => process.env.SONGSTATS_API_KEY?.trim() || "",
   spotifyClientId: () => process.env.SPOTIFY_CLIENT_ID?.trim() || "",
   spotifyClientSecret: () => process.env.SPOTIFY_CLIENT_SECRET?.trim() || "",
+  elevenlabs: () => process.env.ELEVENLABS_API_KEY?.trim() || "",
+  // Default ElevenLabs voice ("Rachel"); override with ELEVENLABS_VOICE_ID.
+  elevenlabsVoice: () =>
+    process.env.ELEVENLABS_VOICE_ID?.trim() || "21m00Tcm4TlvDq8ikWAM",
 };
 
 export const isConfigured = {
@@ -33,6 +37,7 @@ export const isConfigured = {
   // Spotify uses app-level Client Credentials — both id AND secret are required.
   spotify: () =>
     has(process.env.SPOTIFY_CLIENT_ID) && has(process.env.SPOTIFY_CLIENT_SECRET),
+  elevenlabs: () => has(process.env.ELEVENLABS_API_KEY),
 };
 
 /**
@@ -72,6 +77,14 @@ export function getApiStatuses(): ApiStatus[] {
       note: isConfigured.spotify()
         ? "Connected — metadata/BPM fallback + full-track playback (Premium · Connect Spotify)."
         : "Optional — set SPOTIFY_CLIENT_ID & SPOTIFY_CLIENT_SECRET for metadata + full-track playback.",
+    },
+    {
+      key: "elevenlabs",
+      label: "ElevenLabs",
+      state: isConfigured.elevenlabs() ? "connected" : "optional",
+      note: isConfigured.elevenlabs()
+        ? "Connected — read the pitch & results aloud (text-to-speech)."
+        : "Optional — set ELEVENLABS_API_KEY to read the pitch & results aloud.",
     },
     {
       key: "musicbrainz",

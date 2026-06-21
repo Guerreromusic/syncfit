@@ -265,6 +265,7 @@ export type ApiKey =
   | "openrouter"
   | "songstats"
   | "spotify"
+  | "elevenlabs"
   | "musicbrainz"
   | "previews"
   | "logos";

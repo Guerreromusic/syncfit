@@ -1,6 +1,6 @@
 import * as React from "react";
-import type { SyncFitAnalysis } from "@/lib/types";
 import { DocIcon, CheckIcon } from "./icons";
+import { ReadAloud } from "./ReadAloud";
 
 export function PitchSummaryCard({
   pitchSummary,
@@ -15,9 +15,12 @@ export function PitchSummaryCard({
 }) {
   return (
     <div className={bare ? "sf-glass-soft p-5" : "sf-card sf-card-pad"}>
-      <div className="mb-3 flex items-center gap-2">
-        <DocIcon className="h-5 w-5 text-purple-300" aria-hidden />
-        <h3 className="text-sm font-semibold text-white">Pitch Summary</h3>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <DocIcon className="h-5 w-5 text-purple-300" aria-hidden />
+          <h3 className="text-sm font-semibold text-white">Pitch Summary</h3>
+        </div>
+        <ReadAloud text={pitchSummary} label="Read aloud" />
       </div>
 
       <p className="rounded-xl border border-purple-500/20 bg-purple-600/10 p-4 text-sm leading-relaxed text-purple-50">
