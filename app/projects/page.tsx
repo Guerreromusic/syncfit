@@ -6,7 +6,13 @@ import { DeleteForeverButton } from "@/components/DeleteForeverButton";
 import { TrackCover } from "@/components/TrackCover";
 import { BrandLogo } from "@/components/BrandLogo";
 import { StarButton } from "@/components/favourites";
-import { GridIcon, ArrowRightIcon, MegaphoneIcon } from "@/components/icons";
+import {
+  GridIcon,
+  ArrowRightIcon,
+  MegaphoneIcon,
+  ArchiveIcon,
+  ListMusicIcon,
+} from "@/components/icons";
 import type { PitchProject, SavedReport } from "@/lib/types";
 import { scoreColor } from "@/lib/scoreColor";
 
@@ -169,7 +175,10 @@ export default async function ProjectsPage() {
         <>
           {/* Multi-track projects */}
           <section className="space-y-3">
-            <p className="sf-eyebrow">Multi-track projects</p>
+            <p className="sf-eyebrow flex items-center gap-1.5">
+              <GridIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
+              Multi-track projects
+            </p>
             {activeProjects.length === 0 ? (
               <div className="sf-card sf-card-pad flex items-center gap-3 text-sm text-soft">
                 <MegaphoneIcon className="h-5 w-5 shrink-0 text-purple-300" aria-hidden />
@@ -189,7 +198,8 @@ export default async function ProjectsPage() {
 
             {archivedProjects.length > 0 && (
               <details className="group/arch">
-                <summary className="sf-eyebrow cursor-pointer select-none list-none py-1 text-soft transition hover:text-white">
+                <summary className="sf-eyebrow inline-flex cursor-pointer select-none items-center gap-1.5 list-none py-1 text-soft transition hover:text-white">
+                  <ArchiveIcon className="h-3.5 w-3.5" aria-hidden />
                   Archived projects ({archivedProjects.length})
                 </summary>
                 <ul className="mt-3 grid grid-cols-1 gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">
@@ -206,7 +216,10 @@ export default async function ProjectsPage() {
           {/* Every scored track is pitch-ready — label it honestly rather than
               implying each was deliberately created as a pitch. */}
           <section className="space-y-3">
-            <p className="sf-eyebrow">Scored tracks — ready to pitch</p>
+            <p className="sf-eyebrow flex items-center gap-1.5">
+              <ListMusicIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
+              Scored tracks — ready to pitch
+            </p>
             {reports.length === 0 ? (
               <div className="sf-card sf-card-pad flex items-center gap-3 text-sm text-soft">
                 <MegaphoneIcon className="h-5 w-5 shrink-0 text-purple-300" aria-hidden />
@@ -225,7 +238,8 @@ export default async function ProjectsPage() {
 
             {archivedReports.length > 0 && (
               <details className="group/arch">
-                <summary className="sf-eyebrow cursor-pointer select-none list-none py-1 text-soft transition hover:text-white">
+                <summary className="sf-eyebrow inline-flex cursor-pointer select-none items-center gap-1.5 list-none py-1 text-soft transition hover:text-white">
+                  <ArchiveIcon className="h-3.5 w-3.5" aria-hidden />
                   Archived pitches ({archivedReports.length})
                 </summary>
                 <ul className="mt-3 grid grid-cols-1 gap-4 opacity-70 sm:grid-cols-2 lg:grid-cols-3">

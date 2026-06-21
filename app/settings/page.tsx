@@ -60,6 +60,51 @@ export default function SettingsPage() {
           </p>
         </div>
       </div>
+
+      {/* Playback & voice */}
+      <div className="sf-card sf-card-pad">
+        <p className="sf-eyebrow">Playback &amp; voice</p>
+        <h2 className="mt-1 text-sm font-semibold text-white">
+          Full-track playback &amp; the voice Agent
+        </h2>
+        <ul className="mt-3 space-y-2 text-sm text-soft">
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
+            <span>
+              <span className="font-semibold text-white">Spotify (full tracks)</span> — connect a
+              Spotify <span className="text-white">Premium</span> account to play tracks in full in
+              the footer player. Without it, tracks play as a keyless 30s preview.
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
+            <span>
+              <span className="font-semibold text-white">Deezer</span> — keyless 30s previews, no
+              account needed (Apple Music is not used).
+            </span>
+          </li>
+          <li className="flex gap-2">
+            <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-lime-400" />
+            <span>
+              <span className="font-semibold text-white">ElevenLabs</span> — narrates pitches &amp;
+              results aloud and powers the hands-free Agent.
+            </span>
+          </li>
+        </ul>
+        <div className="mt-4">
+          <a href="/api/spotify/login" className="sf-btn-white inline-flex w-fit">
+            Connect Spotify Premium
+          </a>
+        </div>
+        <p className="mt-3 text-xs leading-relaxed text-soft">
+          Full playback needs Spotify Premium. In your Spotify Developer dashboard, add this
+          redirect URI to the app first:{" "}
+          <code className="rounded bg-ink-800 px-1.5 py-0.5 text-purple-100">
+            https://syncfit-fawn.vercel.app/api/spotify/callback
+          </code>
+          .
+        </p>
+      </div>
     </div>
   );
 }
