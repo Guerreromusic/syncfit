@@ -43,13 +43,13 @@ export default function StarredPage() {
         </ul>
       ) : list.length === 0 ? (
         <div className="sf-card sf-card-pad flex min-h-[260px] flex-col items-center justify-center text-center">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400/15 ring-1 ring-inset ring-amber-400/30">
-            <StarIcon className="h-6 w-6 text-amber-300" aria-hidden />
+          <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-lime-400/15 ring-1 ring-inset ring-lime-400/30">
+            <StarIcon className="h-6 w-6 text-lime-300" aria-hidden />
           </span>
           <h3 className="mt-4 text-base font-semibold text-white">No starred tracks yet</h3>
           <p className="mt-2 max-w-sm text-sm text-soft">
             In <span className="text-white">Research</span>, tap the{" "}
-            <span className="text-amber-300">star</span> on any discovered track to
+            <span className="text-lime-300">star</span> on any discovered track to
             save it here.
           </p>
         </div>
@@ -92,7 +92,7 @@ export default function StarredPage() {
                   >
                     <RocketIcon className="h-4 w-4" aria-hidden />
                   </button>
-                  <StarButton track={t} className="flex h-8 w-8 items-center justify-center rounded-full border border-amber-400/50 bg-amber-400/10 text-amber-300 transition hover:bg-amber-400/20" />
+                  <StarButton track={t} className="flex h-8 w-8 items-center justify-center rounded-full border border-lime-400/50 bg-lime-400/10 text-lime-300 transition hover:bg-lime-400/20" />
                 </div>
               </div>
             </li>

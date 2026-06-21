@@ -104,8 +104,8 @@ export function StarButton({
         className ||
         "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border transition " +
           (fav
-            ? "border-amber-400/50 bg-amber-400/10 text-amber-300"
-            : "border-white/10 bg-white/[0.03] text-soft hover:border-amber-400/40 hover:text-amber-300")
+            ? "border-lime-400/50 bg-lime-400/10 text-lime-300"
+            : "border-white/10 bg-white/[0.03] text-soft hover:border-lime-400/40 hover:text-lime-300")
       }
     >
       <StarIcon filled={fav} className="h-4 w-4" aria-hidden />

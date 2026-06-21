@@ -188,8 +188,6 @@ function FooterPlayer({
   //   press tries Spotify for the FULL track; any miss falls back to the 30s
   //   preview below — so the keyless player is unchanged when Spotify is absent. —
   const sp = React.useRef<ReturnType<typeof getSpotifyPlayback> | null>(null);
-  const [spConfigured, setSpConfigured] = React.useState(false);
-  const [spConnected, setSpConnected] = React.useState(false);
   const spConnectedRef = React.useRef(false);
   const [usingSpotify, setUsingSpotify] = React.useState(false);
   const usingSpotifyRef = React.useRef(false);
@@ -206,10 +204,7 @@ function FooterPlayer({
       .then((r) => r.json())
       .then((d) => {
         if (!active) return;
-        setSpConfigured(Boolean(d?.configured));
-        const conn = Boolean(d?.hasSession);
-        setSpConnected(conn);
-        spConnectedRef.current = conn;
+        spConnectedRef.current = Boolean(d?.hasSession);
       })
       .catch(() => {});
     const unsub = sp.current.subscribe((s) => {
@@ -446,9 +441,6 @@ function FooterPlayer({
     // Stop at the end — never auto-advance into the next track.
     setPlaying(false);
   }
-  function connectSpotify() {
-    window.location.href = "/api/spotify/login";
-  }
 
   return (
     // The music player is ALWAYS docked at the footer (bottom of the screen). On
@@ -605,19 +597,9 @@ function FooterPlayer({
               />
             </div>
           )}
-          {spConfigured && !spConnected && (
-            <button
-              type="button"
-              onClick={connectSpotify}
-              title="Connect Spotify Premium to play full tracks"
-              className={`hidden shrink-0 items-center gap-1 rounded-full border border-lime-400/40 bg-lime-400/10 px-2.5 py-1 text-[11px] font-semibold text-lime-300 transition hover:bg-lime-400/20 sm:inline-flex ${FOCUS_RING}`}
-            >
-              Connect Spotify
-            </button>
-          )}
           <StarButton
             track={{ title, artist, spotifyTrackId: spId, artworkUrl: art }}
-            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-soft transition hover:text-amber-300 aria-pressed:text-amber-300 ${FOCUS_RING}`}
+            className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-soft transition hover:text-lime-300 aria-pressed:text-lime-300 ${FOCUS_RING}`}
           />
           <button
             type="button"

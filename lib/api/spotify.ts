@@ -416,3 +416,29 @@ export async function getSpotifyTrackById(
     return null;
   }
 }
+
+/**
+ * Batch-fetch album artwork for up to 50 Spotify track ids in a SINGLE call
+ * (`GET /v1/tracks?ids=`). Returns a map of trackId → artworkUrl for the ones
+ * that resolved. Used to put real cover art on discovery results (Musixmatch
+ * rarely returns artwork). Never throws.
+ */
+export async function getSpotifyArtworkByIds(
+  ids: string[],
+): Promise<Record<string, string>> {
+  const out: Record<string, string> = {};
+  const valid = [...new Set(ids.filter((id) => /^[A-Za-z0-9]{22}$/.test(id)))].slice(0, 50);
+  if (!valid.length || !isConfigured.spotify()) return out;
+  try {
+    const token = await getToken();
+    if (!token) return out;
+    const json = await spotifyGet(`/tracks?ids=${valid.join(",")}`, token);
+    for (const t of json?.tracks ?? []) {
+      const art = pickArtwork(t?.album?.images);
+      if (t?.id && art) out[String(t.id)] = art;
+    }
+  } catch {
+    /* best-effort */
+  }
+  return out;
+}

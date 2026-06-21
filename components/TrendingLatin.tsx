@@ -74,7 +74,7 @@ function TrendingCard({
             spotifyTrackId: track.spotifyTrackId,
             artworkUrl: track.artworkUrl,
           }}
-          className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:text-amber-300 group-hover:opacity-100 aria-pressed:text-amber-300 aria-pressed:opacity-100"
+          className="absolute right-0.5 top-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-black/55 text-white opacity-0 backdrop-blur-sm transition hover:text-lime-300 group-hover:opacity-100 aria-pressed:text-lime-300 aria-pressed:opacity-100"
         />
       </div>
       <p className="mt-1 truncate text-[11px] font-semibold leading-tight text-white">{track.title}</p>

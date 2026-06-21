@@ -9,10 +9,9 @@
 import { runTrackDiscovery, OpenRouterNotConfiguredError } from "./api/openrouter";
 import { verifyTrackStatus } from "./api/itunes";
 import { searchTrack } from "./api/musixmatch";
-import { heuristicAnalysis, labelForScore } from "./scoring";
-import { DEMO_TRACKS } from "./demo";
+import { getSpotifyArtworkByIds } from "./api/spotify";
+import { labelForScore } from "./scoring";
 import type {
-  AudioReadiness,
   Brief,
   DiscoverResult,
   MarketSignal,
@@ -22,18 +21,6 @@ import type {
 
 // Fast model for the 10-track discovery list (kept well under the 60s cap).
 const DISCOVER_MODEL = "openai/gpt-5-mini";
-
-const PLACEHOLDER_MARKET: MarketSignal = {
-  status: "Unknown",
-  summary: "",
-  confidence: 0,
-};
-const PLACEHOLDER_AUDIO: AudioReadiness = {
-  instrumentalPotential: "Unknown",
-  vocalDominance: "Unknown",
-  dialogueFriendliness: "Unknown",
-  summary: "",
-};
 
 export async function discover(input: {
   brief: Brief;
@@ -48,50 +35,45 @@ export async function discover(input: {
   const resolvedModel = DISCOVER_MODEL;
 
   try {
-    const raw = await runTrackDiscovery({
+    let raw = await runTrackDiscovery({
       brief: input.brief,
       model: resolvedModel,
       exclude: input.exclude,
     });
-    // API TEAM: confirm each track is real via Musixmatch + enrich with real
-    // metadata, drop hallucinations, re-rank on the truth.
-    const tracks = await enrichRankedTracks(raw, input.brief);
-    if (tracks.length > 0) {
-      return {
-        tracks,
-        modelUsed: resolvedModel,
-        openrouterError: null,
-        usedDemoData: { openrouter: false },
-      };
+    // The model very occasionally returns nothing parseable — retry once so we
+    // never fall through to an empty list. We NEVER substitute demo tracks.
+    if (raw.length === 0) {
+      raw = await runTrackDiscovery({
+        brief: input.brief,
+        model: resolvedModel,
+        exclude: input.exclude,
+      });
     }
-    // The model returned no usable tracks (or, on a "show 10 more", everything it
-    // suggested was already excluded). NEVER show an empty "Top 0" list — fall
-    // back to ranked picks, minus anything the user has already seen.
-    const excluded = new Set(
-      (input.exclude ?? []).map((e) => e.toLowerCase().trim()),
-    );
-    const fallback = heuristicDiscover(input.brief).filter(
-      (t) => !excluded.has(`${t.title} — ${t.artist}`.toLowerCase().trim()),
-    );
+    // API TEAM: confirm each track is real via Musixmatch + enrich with real
+    // metadata + real album art, re-rank on the truth. Real tracks only.
+    const tracks = await enrichRankedTracks(raw, input.brief);
     return {
-      tracks: (fallback.length ? fallback : heuristicDiscover(input.brief)).slice(0, 10),
-      modelUsed: null,
-      openrouterError: null,
-      usedDemoData: { openrouter: true },
+      tracks,
+      modelUsed: resolvedModel,
+      openrouterError: tracks.length
+        ? null
+        : "No matching tracks found — try rephrasing the brief.",
+      usedDemoData: { openrouter: false },
     };
   } catch (err) {
-    // Not configured → ordinary demo mode. A real failure → surface the message.
+    // NEVER fall back to demo tracks — surface the real issue instead so research
+    // only ever shows real recommendations.
     const openrouterError =
       err instanceof OpenRouterNotConfiguredError
-        ? null
+        ? "AI discovery isn’t configured — add an OpenRouter key."
         : err instanceof Error
           ? err.message
           : "AI discovery failed";
     return {
-      tracks: heuristicDiscover(input.brief),
+      tracks: [],
       modelUsed: null,
       openrouterError,
-      usedDemoData: { openrouter: true },
+      usedDemoData: { openrouter: false },
     };
   }
 }
@@ -140,6 +122,21 @@ async function enrichRankedTracks(
   brief: Brief,
 ): Promise<RankedTrack[]> {
   const enriched = await mapLimit(tracks, 6, (t) => enrichOne(t, brief));
+
+  // Real album art for every result: Musixmatch rarely returns cover art, so fill
+  // it in from Spotify in ONE batched call (results carry a Spotify id).
+  const needArt = enriched
+    .filter((t) => t.spotifyTrackId && !t.artworkUrl)
+    .map((t) => t.spotifyTrackId as string);
+  if (needArt.length) {
+    const artMap = await getSpotifyArtworkByIds(needArt);
+    for (const t of enriched) {
+      if (!t.artworkUrl && t.spotifyTrackId && artMap[t.spotifyTrackId]) {
+        t.artworkUrl = artMap[t.spotifyTrackId];
+      }
+    }
+  }
+
   // NEVER drop a real recommendation. The iTunes (US) catalogue misses many
   // regional / brand-new / trending tracks, so an unverifiable track is KEPT
   // (just lightly demoted), not removed — absence from one catalogue is NOT proof
@@ -225,26 +222,4 @@ async function enrichOne(t: RankedTrack, brief: Brief): Promise<RankedTrack> {
     spotifyTrackId,
     artworkUrl,
   };
-}
-
-/** Demo fallback: rank the built-in demo catalogue against the brief. */
-function heuristicDiscover(brief: Brief): RankedTrack[] {
-  return DEMO_TRACKS.map((t) => {
-    const a = heuristicAnalysis({
-      brief,
-      track: t,
-      marketSignal: PLACEHOLDER_MARKET,
-      audioReadiness: PLACEHOLDER_AUDIO,
-    });
-    return {
-      title: t.title,
-      artist: t.artist,
-      syncFitScore: a.syncFitScore,
-      scoreLabel: a.scoreLabel,
-      reason: a.pitchSummary,
-      bestUse: a.bestUseCases[0],
-      language: t.language,
-      brandSafety: a.brandSafety.level,
-    };
-  }).sort((x, y) => y.syncFitScore - x.syncFitScore);
 }

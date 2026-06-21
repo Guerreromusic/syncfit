@@ -237,6 +237,16 @@ export function ResearchChat() {
         }
         if (data.mode === "discover") {
           const discover = data.discover as DiscoverResult;
+          if (!discover.tracks.length) {
+            replace(thinkingId, {
+              role: "assistant",
+              kind: "error",
+              text:
+                discover.openrouterError ||
+                "Couldn’t find matching tracks — try rephrasing your brief.",
+            });
+            return;
+          }
           try {
             sessionStorage.setItem(
               "syncfit:research:tracks",
@@ -296,10 +306,19 @@ export function ResearchChat() {
           });
           return;
         }
+        const more = data.discover as DiscoverResult;
+        if (!more.tracks.length) {
+          replace(thinkingId, {
+            role: "assistant",
+            kind: "error",
+            text: "That's every strong match we found — try a different brief.",
+          });
+          return;
+        }
         replace(thinkingId, {
           role: "assistant",
           kind: "discover",
-          discover: data.discover as DiscoverResult,
+          discover: more,
           brief: briefText,
         });
       } catch {
@@ -796,7 +815,7 @@ function DiscoverList({
   return (
     <div className="overflow-hidden rounded-2xl rounded-tl-md border border-white/10 bg-white/[0.02]">
       <p className="border-b border-white/5 px-4 py-2 text-xs text-soft">
-        Top {tracks.length} tracks for your brief — <span className="text-amber-300">star</span> to save, tap <span className="font-medium text-purple-200">Score</span> to research one.
+        Top {tracks.length} tracks for your brief — <span className="text-lime-300">star</span> to save, tap <span className="font-medium text-purple-200">Score</span> to research one.
       </p>
       <ul className="divide-y divide-white/5">
         {tracks.map((t, i) => (

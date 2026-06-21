@@ -79,7 +79,7 @@ export function ReportListItem({ report: r }: { report: SavedReport }) {
           })}
         </p>
         <div className="flex items-center gap-1.5">
-          <StarButton track={favOf(r)} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-soft transition hover:border-amber-400/40 hover:text-amber-300 aria-pressed:border-amber-400/50 aria-pressed:bg-amber-400/10 aria-pressed:text-amber-300" />
+          <StarButton track={favOf(r)} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/[0.03] text-soft transition hover:border-lime-400/40 hover:text-lime-300 aria-pressed:border-lime-400/50 aria-pressed:bg-lime-400/10 aria-pressed:text-lime-300" />
           <SpotifyPlay
             title={r.track.title}
             artist={r.track.artist}
