@@ -426,16 +426,30 @@ export function ResearchChat() {
       }
     }
     measure();
+    // Re-measure on the next frame too — the player capsule mounts a tick after
+    // `current` is set, so this guarantees its offset is correct the moment it
+    // appears mid-research (capsule never flashes behind the bar).
+    const raf = requestAnimationFrame(measure);
     const ro =
       typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
     if (ro && barRef.current) ro.observe(barRef.current);
     window.addEventListener("resize", measure);
     return () => {
+      cancelAnimationFrame(raf);
       ro?.disconnect();
       window.removeEventListener("resize", measure);
-      document.documentElement.style.removeProperty("--sf-player-bottom");
+      // NOTE: do NOT clear --sf-player-bottom here — this cleanup also runs when
+      // the player appears/disappears (playerCurrent dep). Clearing it would drop
+      // the capsule behind the bar for a frame. It's cleared on unmount below.
     };
   }, [playerCurrent]);
+
+  // Reset the player offset only when leaving the Research page.
+  React.useEffect(() => {
+    return () => {
+      document.documentElement.style.removeProperty("--sf-player-bottom");
+    };
+  }, []);
 
   return (
     <>
