@@ -6,6 +6,7 @@ import { Topbar } from "@/components/Topbar";
 import { PlayerProvider } from "@/components/PlayerContext";
 import { SectionChat } from "@/components/SectionChat";
 import { SpotifyConnectToast } from "@/components/SpotifyConnectToast";
+import { SpotifyPremiumModal } from "@/components/SpotifyPremiumModal";
 import { AnalyticsTracker } from "@/components/AnalyticsTracker";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -32,7 +33,10 @@ export default function RootLayout({
             <Topbar />
             <main className="min-w-0 flex-1 px-4 py-8 sm:px-6 sm:py-10 lg:px-12">
               <div className="mx-auto w-full max-w-6xl">
-                <PlayerProvider>{children}</PlayerProvider>
+                <PlayerProvider>
+                  {children}
+                  <SpotifyPremiumModal />
+                </PlayerProvider>
               </div>
             </main>
           </div>

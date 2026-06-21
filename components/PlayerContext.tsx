@@ -23,6 +23,12 @@ type PlayerCtxValue = {
   playing: boolean;
   /** Toggle play/pause on the currently-loaded track. */
   togglePlayback: () => void;
+  /** True when the Spotify Premium prompt should be shown. */
+  showSpotifyPrompt: boolean;
+  /** User chose to connect Spotify Premium → redirect to OAuth. */
+  confirmSpotifyConnect: () => void;
+  /** User chose to skip → play the pending track as a 30s preview. */
+  skipToPreview: () => void;
 };
 
 const PlayerCtx = React.createContext<PlayerCtxValue | null>(null);
@@ -38,6 +44,9 @@ const NOOP: PlayerCtxValue = {
   playToken: 0,
   playing: false,
   togglePlayback: () => {},
+  showSpotifyPrompt: false,
+  confirmSpotifyConnect: () => {},
+  skipToPreview: () => {},
 };
 
 /** Access the in-app player. Safe no-op outside a provider (never throws). */
@@ -62,7 +71,24 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     ? queue[Math.min(Math.max(0, index), queue.length - 1)]
     : null;
 
-  const play = React.useCallback(
+  // — Spotify Premium prompt state ————————————————————————————————————————————
+  // Shown once per device (localStorage key sf_spotify_prompted) on the very
+  // first play click, unless Spotify is already connected.
+  const [showSpotifyPrompt, setShowSpotifyPrompt] = React.useState(false);
+  const [spotifyConnected, setSpotifyConnected] = React.useState(false);
+  const pendingPlayRef = React.useRef<{
+    t: PlayerTrack; q?: PlayerTrack[]; i?: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    fetch("/api/spotify/token", { cache: "no-store" })
+      .then((r) => r.json())
+      .then((d) => setSpotifyConnected(Boolean(d?.hasSession)))
+      .catch(() => {});
+  }, []);
+
+  // Internal: actually enqueue + start playback.
+  const _doPlay = React.useCallback(
     (t: PlayerTrack, q?: PlayerTrack[], i?: number) => {
       if (q && q.length) {
         const start =
@@ -80,10 +106,44 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         setQueue([t]);
         setIndex(0);
       }
-      setPlayToken((n) => n + 1); // explicit press → start playback once resolved
+      setPlayToken((n) => n + 1);
     },
     [],
   );
+
+  // Public play: gate through the Spotify Premium prompt on first ever press.
+  const play = React.useCallback(
+    (t: PlayerTrack, q?: PlayerTrack[], i?: number) => {
+      const alreadyPrompted =
+        typeof localStorage !== "undefined" &&
+        localStorage.getItem("sf_spotify_prompted") === "1";
+      if (!alreadyPrompted && !spotifyConnected) {
+        pendingPlayRef.current = { t, q, i };
+        setShowSpotifyPrompt(true);
+        return;
+      }
+      _doPlay(t, q, i);
+    },
+    [_doPlay, spotifyConnected],
+  );
+
+  const confirmSpotifyConnect = React.useCallback(() => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("sf_spotify_prompted", "1");
+    }
+    setShowSpotifyPrompt(false);
+    window.location.href = "/api/spotify/login";
+  }, []);
+
+  const skipToPreview = React.useCallback(() => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("sf_spotify_prompted", "1");
+    }
+    setShowSpotifyPrompt(false);
+    const pending = pendingPlayRef.current;
+    pendingPlayRef.current = null;
+    if (pending) _doPlay(pending.t, pending.q, pending.i);
+  }, [_doPlay]);
 
   const close = React.useCallback(() => {
     setQueue([]);
@@ -114,8 +174,12 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = React.useMemo(
-    () => ({ current, play, close, next, prev, hasNext, hasPrev, playToken, playing, togglePlayback }),
-    [current, play, close, next, prev, hasNext, hasPrev, playToken, playing, togglePlayback],
+    () => ({
+      current, play, close, next, prev, hasNext, hasPrev, playToken, playing,
+      togglePlayback, showSpotifyPrompt, confirmSpotifyConnect, skipToPreview,
+    }),
+    [current, play, close, next, prev, hasNext, hasPrev, playToken, playing,
+     togglePlayback, showSpotifyPrompt, confirmSpotifyConnect, skipToPreview],
   );
 
   return (
