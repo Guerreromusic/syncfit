@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { SparkIcon } from "./icons";
+import { VoiceAssistant } from "./VoiceAssistant";
 import type { TrackQAContext, TrackQAMessage } from "@/lib/types";
 
 const SUGGESTED = [
@@ -65,14 +66,17 @@ export function AskAI({
 
   if (!open) {
     return (
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/20"
-      >
-        <SparkIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
-        {label}
-      </button>
+      <span className="inline-flex flex-wrap items-center gap-1.5">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center gap-1.5 rounded-full border border-purple-400/30 bg-purple-500/10 px-3 py-1 text-[11px] font-semibold text-purple-100 transition hover:border-purple-400/60 hover:bg-purple-500/20"
+        >
+          <SparkIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
+          {label}
+        </button>
+        <VoiceAssistant ctx={context} />
+      </span>
     );
   }
 
@@ -84,20 +88,23 @@ export function AskAI({
       }}
     >
       <div className="flex items-center justify-between gap-2 border-b border-white/5 px-3 py-2">
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-purple-100">
-          <SparkIcon className="h-3.5 w-3.5 text-lime-400" aria-hidden />
-          Ask AI about “{context.title}”
+        <span className="inline-flex min-w-0 items-center gap-1.5 text-[11px] font-semibold text-purple-100">
+          <SparkIcon className="h-3.5 w-3.5 shrink-0 text-lime-400" aria-hidden />
+          <span className="truncate">Ask AI about “{context.title}”</span>
         </span>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          aria-label="Close Ask AI"
+        <span className="flex shrink-0 items-center gap-1.5">
+          <VoiceAssistant ctx={context} label="Talk" />
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            aria-label="Close Ask AI"
           className="text-soft transition hover:text-white"
         >
-          <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-            <path d="M6 6l12 12M18 6L6 18" />
-          </svg>
-        </button>
+            <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+              <path d="M6 6l12 12M18 6L6 18" />
+            </svg>
+          </button>
+        </span>
       </div>
 
       {/* Thread */}
