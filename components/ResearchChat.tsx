@@ -11,6 +11,7 @@ import { BrandLogo } from "./BrandLogo";
 import { StarButton } from "./favourites";
 import { SparkIcon, ArrowRightIcon, PaperclipIcon, RefreshIcon } from "./icons";
 import { MicDictation } from "./MicDictation";
+import { usePlayer } from "./PlayerContext";
 import { OPENROUTER_MODELS, DEFAULT_OPENROUTER_MODEL } from "@/lib/models";
 import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
@@ -99,6 +100,13 @@ export function ResearchChat() {
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
   const fileRef = React.useRef<HTMLInputElement | null>(null);
+  // Refs for the dynamic footer layout — the docked search bar grows (voice row,
+  // locked-track pill, multi-line input), so we MEASURE it and derive both the
+  // music-player offset and the chat height from it, so they never clash.
+  const barRef = React.useRef<HTMLDivElement | null>(null);
+  const chatBoxRef = React.useRef<HTMLDivElement | null>(null);
+  const { current: playerCurrent } = usePlayer(); // is the footer player visible?
+  const [chatH, setChatH] = React.useState<number | null>(null);
 
   // A track "deployed" from Trending/Dashboard is LOCKED as the selected track:
   // the next brief the user types is scored against THIS track, not a discovery.
@@ -395,19 +403,48 @@ export function ResearchChat() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The footer search bar occupies the bottom of the screen, so float the music
-  // player ABOVE it while this page is mounted.
+  // Footer layout strategy — the docked search bar is height-VARIABLE (voice row,
+  // locked-track pill, multi-line input, errors). Measure it and derive the rest
+  // so the music player, the search bar, and the chat results NEVER clash:
+  //   • the player floats just ABOVE the bar (--sf-player-bottom = barH + gap)
+  //   • the chat area ends above whichever footer element is highest (player when
+  //     a track is loaded — it sits above the bar — otherwise the bar itself).
   React.useEffect(() => {
-    document.documentElement.style.setProperty("--sf-player-bottom", "6.25rem");
+    const GAP = 12;
+    const PLAYER_H = 76; // footer player capsule + clearance
+    function measure() {
+      const bar = barRef.current;
+      if (!bar) return;
+      const barH = bar.offsetHeight;
+      const playerBottom = barH + GAP;
+      document.documentElement.style.setProperty("--sf-player-bottom", `${playerBottom}px`);
+      const box = chatBoxRef.current;
+      if (box) {
+        const top = box.getBoundingClientRect().top;
+        const reserve = playerBottom + (playerCurrent ? PLAYER_H + GAP : 0);
+        setChatH(Math.max(240, Math.round(window.innerHeight - top - reserve)));
+      }
+    }
+    measure();
+    const ro =
+      typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro && barRef.current) ro.observe(barRef.current);
+    window.addEventListener("resize", measure);
     return () => {
+      ro?.disconnect();
+      window.removeEventListener("resize", measure);
       document.documentElement.style.removeProperty("--sf-player-bottom");
     };
-  }, []);
+  }, [playerCurrent]);
 
   return (
     <>
-      {/* Conversation — fills the screen above the docked footer search bar */}
-      <div className="flex h-[calc(100vh-9rem)] min-h-[420px] flex-col">
+      {/* Conversation — height is measured so it always clears the player + bar */}
+      <div
+        ref={chatBoxRef}
+        className="flex min-h-[240px] flex-col"
+        style={{ height: chatH ? `${chatH}px` : "calc(100dvh - 12rem)" }}
+      >
         {/* Header — just the model switch */}
         <div className="flex items-center justify-end pb-3">
           <ModelSwitch model={model} models={OPENROUTER_MODELS} onChange={setModel} />
@@ -434,7 +471,10 @@ export function ResearchChat() {
       </div>
 
       {/* Search bar — DOCKED to the footer (right of the sidebar) */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.06] bg-ink-950/90 px-4 py-3 backdrop-blur-md lg:left-[280px]">
+      <div
+        ref={barRef}
+        className="fixed inset-x-0 bottom-0 z-30 border-t border-white/[0.06] bg-ink-950/90 px-4 py-3 backdrop-blur-md lg:left-[280px]"
+      >
         <form
           onSubmit={(e) => {
             e.preventDefault();
