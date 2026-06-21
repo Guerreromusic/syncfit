@@ -412,7 +412,8 @@ export function ResearchChat() {
   // and the player only shows when a track is loaded, so we measure both and
   // size each element to respect the others — nothing ever overlaps.
   React.useEffect(() => {
-    const GAP = 12;
+    const GAP = 12; // breathing room between the bar and the results above it
+    const PLAYER_GAP = 4; // keep the player tucked CLOSE to the search bar
     function measure() {
       const bar = barRef.current;
       if (!bar) return;
@@ -423,7 +424,7 @@ export function ResearchChat() {
         ? (document.querySelector("[data-sf-player]") as HTMLElement | null)
         : null;
       const playerReserve = playerEl
-        ? Math.max(0, Math.round(window.innerHeight - playerEl.getBoundingClientRect().top + GAP))
+        ? Math.max(0, Math.round(window.innerHeight - playerEl.getBoundingClientRect().top + PLAYER_GAP))
         : 0;
       setBarBottom(playerReserve);
       const box = chatBoxRef.current;
@@ -568,13 +569,9 @@ export function ResearchChat() {
             <p role="alert" className="mt-1.5 text-center text-[11px] text-red-300">
               {attachErr}
             </p>
-          ) : (
-            <p className="mt-1.5 text-center text-[11px] text-soft">
-              {attaching
-                ? "Reading your document…"
-                : "Brief → 10 best-fitting tracks · Spotify link → score that song · attach a PDF/Word brief · then ask anything."}
-            </p>
-          )}
+          ) : attaching ? (
+            <p className="mt-1.5 text-center text-[11px] text-soft">Reading your document…</p>
+          ) : null}
         </form>
       </div>
     </>
