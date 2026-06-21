@@ -313,6 +313,22 @@ export async function deleteReport(id: string): Promise<void> {
   await run;
 }
 
+export async function setReportBanner(
+  id: string,
+  bannerUrl: string,
+): Promise<SavedReport | null> {
+  const run = writeChain.then(async () => {
+    const all = await readAll();
+    const idx = all.findIndex((r) => r.id === id);
+    if (idx === -1) return null;
+    all[idx] = { ...all[idx], bannerUrl: bannerUrl.trim() || undefined };
+    await writeAll(all);
+    return all[idx];
+  });
+  writeChain = run.catch(() => undefined);
+  return run;
+}
+
 // ---- Pitch projects ---------------------------------------------------------
 
 export async function listProjects(): Promise<PitchProject[]> {

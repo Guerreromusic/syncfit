@@ -339,6 +339,8 @@ export type SavedReport = {
   /** AI-generated brief name (the report title). Editable; falls back to the
    * analysis briefName, then the track title for older reports. */
   name?: string;
+  /** Campaign banner image URL (generated for the pitch by Higgsfield). */
+  bannerUrl?: string;
   brief: Brief;
   track: {
     trackId: string;

@@ -1,10 +1,13 @@
-// GET /api/voice → mints a short-lived signed WebSocket URL for the SyncFit
-// Conversational AI voice agent. The ElevenLabs key + agent id stay server-side;
-// the browser only ever receives the signed URL (and a { configured } flag).
+// GET /api/voice → credentials for the SyncFit Conversational AI voice agent.
+// Returns BOTH a WebRTC conversation token (primary — far more firewall-friendly
+// than a raw WebSocket) and a signed WebSocket URL (fallback). The ElevenLabs key
+// + agent id stay server-side; the browser only receives short-lived creds.
 import { NextResponse } from "next/server";
 import { env, isConfigured } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
+
+const CONVAI = "https://api.elevenlabs.io/v1/convai/conversation";
 
 export async function GET() {
   if (!isConfigured.voiceAgent()) {
@@ -13,31 +16,39 @@ export async function GET() {
   }
 
   const agentId = env.elevenlabsAgentId();
+  const headers = { "xi-api-key": env.elevenlabs() };
+  const q = `agent_id=${encodeURIComponent(agentId)}`;
+
   try {
-    const res = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get-signed-url?agent_id=${encodeURIComponent(
-        agentId,
-      )}`,
-      { headers: { "xi-api-key": env.elevenlabs() }, cache: "no-store" },
-    );
-    if (!res.ok) {
-      // Log server-side; return a generic message (don't leak the provider body).
-      console.error("[/api/voice] get-signed-url HTTP", res.status);
+    const [tokenRes, urlRes] = await Promise.all([
+      fetch(`${CONVAI}/token?${q}`, { headers, cache: "no-store" }).catch(() => null),
+      fetch(`${CONVAI}/get-signed-url?${q}`, { headers, cache: "no-store" }).catch(() => null),
+    ]);
+
+    const conversationToken =
+      tokenRes && tokenRes.ok
+        ? ((await tokenRes.json()) as { token?: string }).token ?? null
+        : null;
+    const signedUrl =
+      urlRes && urlRes.ok
+        ? ((await urlRes.json()) as { signed_url?: string }).signed_url ?? null
+        : null;
+
+    if (!conversationToken && !signedUrl) {
+      console.error(
+        "[/api/voice] token+signed-url failed",
+        tokenRes?.status,
+        urlRes?.status,
+      );
       return NextResponse.json(
         { configured: true, error: "Couldn’t start the voice assistant." },
         { status: 502 },
       );
     }
-    const data = (await res.json()) as { signed_url?: string };
-    if (!data.signed_url) {
-      return NextResponse.json(
-        { configured: true, error: "Couldn’t start the voice assistant." },
-        { status: 502 },
-      );
-    }
-    return NextResponse.json({ configured: true, signedUrl: data.signed_url });
+
+    return NextResponse.json({ configured: true, conversationToken, signedUrl });
   } catch (err) {
-    console.error("[/api/voice] signed-url failed:", err);
+    console.error("[/api/voice] creds failed:", err);
     return NextResponse.json(
       { configured: true, error: "Couldn’t start the voice assistant." },
       { status: 502 },

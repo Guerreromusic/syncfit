@@ -141,18 +141,27 @@ function VoiceAssistantInner({
 
     if (musicPlaying) togglePlayback(); // don't talk over the music
 
-    // 2) Mint a signed URL and open the conversation.
+    // 2) Get creds and open the conversation. Prefer WebRTC (firewall-friendly),
+    // fall back to the signed WebSocket URL.
     try {
       const res = await fetch("/api/voice");
-      const data = (await res.json()) as { signedUrl?: string; error?: string };
-      if (!data.signedUrl) {
+      const data = (await res.json()) as {
+        conversationToken?: string;
+        signedUrl?: string;
+        error?: string;
+      };
+      const conn = data.conversationToken
+        ? { conversationToken: data.conversationToken, connectionType: "webrtc" as const }
+        : data.signedUrl
+          ? { signedUrl: data.signedUrl, connectionType: "websocket" as const }
+          : null;
+      if (!conn) {
         setErr(data.error || "Voice assistant is unavailable.");
         setStarting(false);
         return;
       }
       await startSession({
-        signedUrl: data.signedUrl,
-        connectionType: "websocket",
+        ...conn,
         overrides: {
           agent: {
             prompt: { prompt: buildPrompt(ctx) },

@@ -88,7 +88,10 @@ export async function runSyncFitAnalysis(
       // Low reasoning effort keeps latency well under Vercel's 60s function cap
       // (gpt-5-nano/Gemini are reasoning models; ignored by non-reasoning models).
       reasoning: { effort: "low" },
-      temperature: 0.4,
+      // Deterministic scoring: temperature 0 + a fixed seed so the SAME track +
+      // brief always produces the SAME SyncFit score (consistent across the app).
+      temperature: 0,
+      seed: 7,
       // Ask for a JSON object back where supported.
       response_format: { type: "json_object" },
       messages: [

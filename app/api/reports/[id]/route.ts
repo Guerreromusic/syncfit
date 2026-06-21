@@ -7,6 +7,7 @@ import {
   getReport,
   setReportArchived,
   setReportName,
+  setReportBanner,
   deleteReport,
 } from "@/lib/storage";
 
@@ -38,11 +39,20 @@ export async function PATCH(
   req: Request,
   { params }: { params: { id: string } },
 ) {
-  let body: { archived?: unknown; name?: unknown };
+  let body: { archived?: unknown; name?: unknown; bannerUrl?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: "Invalid request body." }, { status: 400 });
+  }
+
+  // Campaign banner image URL (generated for the pitch).
+  if (typeof body.bannerUrl === "string") {
+    const report = await setReportBanner(params.id, body.bannerUrl);
+    if (!report) {
+      return NextResponse.json({ error: "Report not found." }, { status: 404 });
+    }
+    return NextResponse.json({ report });
   }
 
   // Rename (editable AI brief name).

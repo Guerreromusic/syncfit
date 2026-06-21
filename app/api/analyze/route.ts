@@ -4,9 +4,25 @@
 import { NextResponse } from "next/server";
 import { analyze } from "@/lib/analyze";
 import { discover } from "@/lib/discover";
-import { saveReport, toSavedReport } from "@/lib/storage";
+import { saveReport, toSavedReport, listReports } from "@/lib/storage";
 import { hasSpotifyLink, resolveSpotifyTrackUrl } from "@/lib/api/spotify";
-import type { Brief, NormalizedTrack } from "@/lib/types";
+import type { AnalyzeResult, Brief, ClientTrack, NormalizedTrack, SavedReport } from "@/lib/types";
+
+const norm = (s: string) => (s || "").toLowerCase().trim().replace(/\s+/g, " ");
+
+/** Rebuild an analyze result from a previously-saved report so the SAME track +
+ * brief always returns the SAME (final) score across the platform. */
+function resultFromReport(r: SavedReport): AnalyzeResult {
+  return {
+    track: r.track as ClientTrack,
+    marketSignal: r.marketSignal,
+    audioReadiness: r.audioReadiness,
+    analysis: r.analysis,
+    usedDemoData: r.usedDemoData,
+    modelUsed: null,
+    openrouterError: null,
+  };
+}
 
 const SPOTIFY_URL_RE =
   /https?:\/\/\S*open\.spotify\.com\/\S+|https?:\/\/(?:spotify\.link|spotify\.app\.link)\/\S+|spotify:(?:track|album|playlist):\S+/g;
@@ -103,6 +119,28 @@ export async function POST(req: Request) {
         exclude: Array.isArray(body.exclude) ? body.exclude : undefined,
       });
       return NextResponse.json({ mode: "discover", discover: discovered });
+    }
+
+    // CONSISTENCY: once a track has been scored for a brief, that score is FINAL.
+    // If a saved report already exists for the same track + brief, return it
+    // verbatim instead of re-running the AI (which could drift).
+    const wantTitle = norm(title || "");
+    const wantArtist = norm(artist || "");
+    const wantBrief = norm(brief.brief);
+    const existing = (await listReports()).find(
+      (r) =>
+        !r.archived &&
+        norm(r.track.title) === wantTitle &&
+        (!wantArtist || norm(r.track.artist) === wantArtist) &&
+        norm(r.brief.brief) === wantBrief,
+    );
+    if (existing) {
+      return NextResponse.json({
+        mode: "single",
+        result: resultFromReport(existing),
+        savedId: existing.id,
+        reused: true,
+      });
     }
 
     const result = await analyze({

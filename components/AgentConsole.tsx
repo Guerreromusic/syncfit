@@ -109,14 +109,21 @@ function AgentConsoleInner() {
     },
   };
 
-  async function mintSignedUrl(): Promise<string | null> {
+  async function mintCreds(): Promise<{
+    conversationToken?: string;
+    signedUrl?: string;
+  } | null> {
     const res = await fetch("/api/voice");
-    const data = (await res.json()) as { signedUrl?: string; error?: string };
-    if (!data.signedUrl) {
+    const data = (await res.json()) as {
+      conversationToken?: string;
+      signedUrl?: string;
+      error?: string;
+    };
+    if (!data.conversationToken && !data.signedUrl) {
       setErr(data.error || "Agent is unavailable.");
       return null;
     }
-    return data.signedUrl;
+    return data;
   }
 
   // Voice: acquire the mic INSIDE the click gesture (before any await) so the
@@ -146,12 +153,16 @@ function AgentConsoleInner() {
     }
     if (musicPlaying) togglePlayback();
     try {
-      const signedUrl = await mintSignedUrl();
-      if (!signedUrl) {
+      const creds = await mintCreds();
+      if (!creds) {
         setStarting(false);
         return;
       }
-      await startSession({ signedUrl, connectionType: "websocket", overrides });
+      // Voice: prefer WebRTC (firewall-friendly), fall back to the signed WebSocket.
+      const conn = creds.conversationToken
+        ? { conversationToken: creds.conversationToken, connectionType: "webrtc" as const }
+        : { signedUrl: creds.signedUrl as string, connectionType: "websocket" as const };
+      await startSession({ ...conn, overrides });
     } catch {
       setErr("Couldn’t connect to the agent — try again.");
     } finally {
@@ -179,18 +190,28 @@ function AgentConsoleInner() {
     setTurns((prev) => [...prev, { role: "user", text: q }]);
     pendingRef.current = q;
     try {
-      const signedUrl = await mintSignedUrl();
-      if (!signedUrl) {
+      const creds = await mintCreds();
+      if (!creds) {
         pendingRef.current = null;
         setStarting(false);
         return;
       }
-      await startSession({
-        signedUrl,
-        connectionType: "websocket",
-        textOnly: true,
-        overrides,
-      });
+      // Text path: prefer the signed WebSocket in text-only mode (no mic needed);
+      // fall back to WebRTC when only a token is available.
+      if (creds.signedUrl) {
+        await startSession({
+          signedUrl: creds.signedUrl,
+          connectionType: "websocket",
+          textOnly: true,
+          overrides,
+        });
+      } else {
+        await startSession({
+          conversationToken: creds.conversationToken as string,
+          connectionType: "webrtc",
+          overrides,
+        });
+      }
     } catch {
       pendingRef.current = null;
       setErr("Couldn’t connect to the agent — try again.");
