@@ -418,25 +418,37 @@ export async function getSpotifyTrackById(
 }
 
 /**
- * Batch-fetch album artwork for up to 50 Spotify track ids in a SINGLE call
- * (`GET /v1/tracks?ids=`). Returns a map of trackId → artworkUrl for the ones
- * that resolved. Used to put real cover art on discovery results (Musixmatch
- * rarely returns artwork). Never throws.
+ * Fetch album artwork for a set of Spotify track ids → map of trackId → artworkUrl.
+ * Used to put real cover art on discovery results (Musixmatch rarely returns it).
+ * NOTE: Spotify forbids the batch `GET /v1/tracks?ids=` for app (client-credentials)
+ * tokens (403), but single `GET /v1/tracks/{id}` is allowed — so we fan out single
+ * lookups with bounded concurrency. Never throws.
  */
 export async function getSpotifyArtworkByIds(
   ids: string[],
 ): Promise<Record<string, string>> {
   const out: Record<string, string> = {};
-  const valid = [...new Set(ids.filter((id) => /^[A-Za-z0-9]{22}$/.test(id)))].slice(0, 50);
+  const valid = [...new Set(ids.filter((id) => /^[A-Za-z0-9]{22}$/.test(id)))].slice(0, 20);
   if (!valid.length || !isConfigured.spotify()) return out;
   try {
     const token = await getToken();
     if (!token) return out;
-    const json = await spotifyGet(`/tracks?ids=${valid.join(",")}`, token);
-    for (const t of json?.tracks ?? []) {
-      const art = pickArtwork(t?.album?.images);
-      if (t?.id && art) out[String(t.id)] = art;
+    let cursor = 0;
+    async function worker() {
+      while (cursor < valid.length) {
+        const id = valid[cursor++];
+        try {
+          const t = await spotifyGet(`/tracks/${id}`, token!);
+          const art = pickArtwork(t?.album?.images);
+          if (art) out[id] = art;
+        } catch {
+          /* skip this one */
+        }
+      }
     }
+    await Promise.all(
+      Array.from({ length: Math.min(6, valid.length) }, () => worker()),
+    );
   } catch {
     /* best-effort */
   }
