@@ -73,7 +73,7 @@ export function ReportCard({
                     title="Rename report"
                   />
                 ) : (
-                  <h1 className="truncate text-2xl font-bold text-white">
+                  <h1 className="line-clamp-2 break-words text-xl font-bold text-white sm:text-2xl">
                     {briefName}
                   </h1>
                 )}

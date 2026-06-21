@@ -58,7 +58,7 @@ export function PitchCard({
             <p className="sf-eyebrow">SyncFit Pitch</p>
             {/* Track name + Play side by side to save vertical space */}
             <div className="mt-0.5 flex items-center gap-2.5">
-              <h1 className="min-w-0 truncate text-2xl font-bold text-white">
+              <h1 className="min-w-0 line-clamp-2 break-words text-xl font-bold text-white sm:text-2xl">
                 {track.title}
               </h1>
               <SpotifyPlay

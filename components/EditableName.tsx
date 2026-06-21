@@ -92,7 +92,7 @@ export function EditableName({
         title={error ? "Rename failed — click to try again" : title}
         className="group inline-flex max-w-full items-center gap-2 text-left"
       >
-        <span className="truncate text-2xl font-bold text-white">{name}</span>
+        <span className="line-clamp-2 break-words text-left text-xl font-bold text-white sm:text-2xl">{name}</span>
         <PencilIcon
           className={
             "h-4 w-4 shrink-0 transition group-hover:text-purple-300 " +
