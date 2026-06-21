@@ -99,6 +99,18 @@ export function ResearchChat() {
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
   const fileRef = React.useRef<HTMLInputElement | null>(null);
+
+  // A track "deployed" from Trending/Dashboard is LOCKED as the selected track:
+  // the next brief the user types is scored against THIS track, not a discovery.
+  const selectedTrackRef = React.useRef<{ title: string; artist: string } | null>(null);
+  const [selectedTrack, setSelectedTrack] = React.useState<{ title: string; artist: string } | null>(null);
+  const selectTrack = React.useCallback(
+    (t: { title: string; artist: string } | null) => {
+      selectedTrackRef.current = t;
+      setSelectedTrack(t);
+    },
+    [],
+  );
   const nextId = () => ++idRef.current;
 
   // Auto-scroll to the newest message.
@@ -173,8 +185,10 @@ export function ResearchChat() {
       });
       setBusy(true);
 
-      // Track-pick carries the prior brief; a fresh brief replaces it.
-      if (!override && opts.briefText) {
+      // Any provided brief text updates the running brief — so deploying a track
+      // and THEN typing a brief scores that track against the NEW brief. A bare
+      // track-pick (no text) keeps the prior brief.
+      if (opts.briefText) {
         const clean = opts.briefText.replace(SPOTIFY_STRIP_RE, "").trim();
         if (clean) briefRef.current = clean;
       }
@@ -318,26 +332,47 @@ export function ResearchChat() {
       setInput("");
       add({ role: "user", text: t });
       const link = SPOTIFY_LINK_RE.test(t);
-      if (!link && ctxRef.current && isQuestion(t)) {
+      if (link) {
+        // Pasting a link picks that exact song — clears any deployed selection.
+        selectTrack(null);
+        void runResearch({ briefText: t });
+      } else if (selectedTrackRef.current) {
+        // A track was deployed from Trending/Dashboard → score IT against this brief.
+        const track = selectedTrackRef.current;
+        selectTrack(null);
+        void runResearch({ override: track, briefText: t });
+      } else if (ctxRef.current && isQuestion(t)) {
         void runQA(t);
       } else {
         void runResearch({ briefText: t });
       }
     },
-    [busy, attaching, runQA, runResearch, add],
+    [busy, attaching, runQA, runResearch, add, selectTrack],
   );
 
-  // Seed from a trending "Deploy" or a suggested alternative.
+  // Seed from a trending/dashboard "Deploy" or a suggested alternative.
   React.useEffect(() => {
     try {
       const rawSeed = sessionStorage.getItem(RESEARCH_SEED_KEY);
       if (!rawSeed) return;
       sessionStorage.removeItem(RESEARCH_SEED_KEY);
       const seed = JSON.parse(rawSeed) as { title?: string; artist?: string; brief?: Brief | null };
-      if (seed.brief?.brief) briefRef.current = seed.brief.brief;
-      if (seed.title) {
-        add({ role: "user", text: seed.artist ? `${seed.title} — ${seed.artist}` : seed.title });
-        void runResearch({ override: { title: seed.title, artist: seed.artist ?? "" } });
+      if (!seed.title) return;
+      const track = { title: seed.title, artist: seed.artist ?? "" };
+      if (seed.brief?.brief) {
+        // Deployed WITH a brief (e.g. a suggested alternative) → score immediately.
+        briefRef.current = seed.brief.brief;
+        add({ role: "user", text: track.artist ? `${track.title} — ${track.artist}` : track.title });
+        void runResearch({ override: track });
+      } else {
+        // Deployed from Trending/Dashboard with NO brief → LOCK this track and wait
+        // for the user's brief, then score THIS track against it.
+        selectTrack(track);
+        add({
+          role: "assistant",
+          kind: "qa",
+          text: `Loaded “${track.title}”${track.artist ? ` — ${track.artist}` : ""}. Describe the placement (type or 🎙 speak) and I’ll score this track against your brief.`,
+        });
       }
     } catch {
       /* ignore malformed seed */
@@ -393,9 +428,26 @@ export function ResearchChat() {
           className="mx-auto max-w-[920px]"
         >
           <div className="rounded-2xl border border-white/10 bg-ink-900/70 px-3 py-2 focus-within:border-purple-400/60">
-            {/* Voice input — speak your brief in English or another language */}
-            <div className="mb-1.5 flex items-center gap-1">
+            {/* Voice input + (when a track was deployed) the locked-track pill */}
+            <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
               <MicDictation value={input} onChange={setInput} />
+              {selectedTrack && (
+                <span className="inline-flex max-w-full items-center gap-1.5 overflow-hidden rounded-full border border-lime-400/40 bg-lime-400/10 px-2.5 py-1 text-[11px] font-semibold text-lime-200">
+                  <span className="truncate">
+                    Scoring: {selectedTrack.title}
+                    {selectedTrack.artist ? ` — ${selectedTrack.artist}` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => selectTrack(null)}
+                    aria-label="Clear the selected track"
+                    title="Clear the selected track"
+                    className="shrink-0 text-lime-200/70 transition hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </span>
+              )}
             </div>
             <div className="flex items-end gap-2">
             {/* Attach a PDF / Word doc */}
@@ -428,7 +480,11 @@ export function ResearchChat() {
                 }
               }}
               rows={1}
-              placeholder="Describe a placement, paste a Spotify link, attach a brief, or ask about a track…"
+              placeholder={
+                selectedTrack
+                  ? `Describe the placement to score “${selectedTrack.title}”…`
+                  : "Describe a placement, paste a Spotify link, attach a brief, or ask about a track…"
+              }
               className="min-h-[24px] flex-1 resize-none overflow-y-auto bg-transparent py-1 text-sm text-white placeholder:text-soft/80 focus:outline-none"
             />
             <button
