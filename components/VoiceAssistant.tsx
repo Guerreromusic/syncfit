@@ -66,7 +66,12 @@ function VoiceAssistantInner({
   label?: string;
 }) {
   const conversation = useConversation({
-    onError: () => setErr("Couldn’t start — allow microphone access and try again."),
+    onError: (message) => {
+      // eslint-disable-next-line no-console
+      console.error("[VoiceAssistant] error:", message);
+      setErr(message ? `Voice error: ${message}` : "Couldn’t connect — try again.");
+      setStarting(false);
+    },
   });
   const { status, isSpeaking, startSession, endSession } = conversation;
 
@@ -108,12 +113,41 @@ function VoiceAssistantInner({
   async function start() {
     setErr(null);
     setStarting(true);
+
+    // 1) Acquire the mic INSIDE the click gesture, before any await. This gives a
+    // precise permission error and avoids Safari dropping the user-gesture context
+    // across the fetch below (which would silently block the mic).
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setErr("Voice needs a modern browser over HTTPS.");
+      setStarting(false);
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // Release immediately — the SDK opens its own stream; this just pre-grants.
+      stream.getTracks().forEach((t) => t.stop());
+    } catch (e) {
+      const name = (e as { name?: string })?.name || "";
+      setErr(
+        name === "NotAllowedError" || name === "SecurityError"
+          ? "Microphone blocked — allow mic access for this site, then try again."
+          : name === "NotFoundError" || name === "DevicesNotFoundError"
+            ? "No microphone found — connect one and try again."
+            : "Couldn’t access the microphone — try again.",
+      );
+      setStarting(false);
+      return;
+    }
+
     if (musicPlaying) togglePlayback(); // don't talk over the music
+
+    // 2) Mint a signed URL and open the conversation.
     try {
       const res = await fetch("/api/voice");
       const data = (await res.json()) as { signedUrl?: string; error?: string };
       if (!data.signedUrl) {
         setErr(data.error || "Voice assistant is unavailable.");
+        setStarting(false);
         return;
       }
       await startSession({
@@ -128,7 +162,7 @@ function VoiceAssistantInner({
         },
       });
     } catch {
-      setErr("Couldn’t start the voice assistant. Check mic permissions.");
+      setErr("Couldn’t connect to the voice assistant — try again.");
     } finally {
       setStarting(false);
     }
