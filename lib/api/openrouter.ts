@@ -323,7 +323,9 @@ export function normalizeRankedTracks(raw: any): RankedTrack[] {
     });
 
   tracks.sort((a, b) => b.syncFitScore - a.syncFitScore);
-  return tracks.slice(0, 10);
+  // Keep the over-fetched candidate set; discovery verifies each against the
+  // catalogue, drops hallucinations, and trims the survivors to the top 10.
+  return tracks.slice(0, 18);
 }
 
 // =============================================================================

@@ -7,7 +7,7 @@
 // =============================================================================
 
 import { runTrackDiscovery, OpenRouterNotConfiguredError } from "./api/openrouter";
-import { verifyTrack } from "./api/itunes";
+import { verifyTrackStatus } from "./api/itunes";
 import { searchTrack } from "./api/musixmatch";
 import { heuristicAnalysis, labelForScore } from "./scoring";
 import { DEMO_TRACKS } from "./demo";
@@ -123,24 +123,34 @@ async function enrichRankedTracks(
   brief: Brief,
 ): Promise<RankedTrack[]> {
   const enriched = await mapLimit(tracks, 6, (t) => enrichOne(t, brief));
-  return enriched.sort((a, b) => b.syncFitScore - a.syncFitScore);
+  // Drop CONFIRMED hallucinations (the catalogue answered and the track isn't
+  // real). Tracks that merely couldn't be checked (rate-limit/outage) are KEPT.
+  // Keep the top 10 surviving real/quality tracks, ranked on real data.
+  const real = enriched.filter((e) => !e.fake).map((e) => e.track);
+  real.sort((a, b) => b.syncFitScore - a.syncFitScore);
+  return real.slice(0, 10);
 }
 
-async function enrichOne(t: RankedTrack, brief: Brief): Promise<RankedTrack> {
+async function enrichOne(
+  t: RankedTrack,
+  brief: Brief,
+): Promise<{ track: RankedTrack; fake: boolean }> {
   let title = t.title;
   let artist = t.artist;
   let verified = false;
+  let fake = false;
   let artworkUrl: string | null = t.artworkUrl ?? null;
 
-  // 1) MUSIXMATCH — real catalogue + metadata.
+  // 1) MUSIXMATCH — real catalogue + metadata. Only accept an actual TITLE match
+  //    (no falling back to an unrelated result, which would "verify" a wrong song).
   let mxm: NormalizedTrack | undefined;
   try {
     const { tracks, demo } = await searchTrack({ title: t.title, artist: t.artist });
     if (!demo && tracks.length) {
-      mxm = tracks.find((m) => titleMatches(m.title, t.title)) ?? tracks[0];
+      mxm = tracks.find((m) => titleMatches(m.title, t.title));
     }
   } catch {
-    /* Musixmatch unavailable — try iTunes next */
+    /* Musixmatch unavailable — fall through to the iTunes existence check */
   }
 
   if (mxm) {
@@ -149,14 +159,19 @@ async function enrichOne(t: RankedTrack, brief: Brief): Promise<RankedTrack> {
     artist = mxm.artist;
     artworkUrl = mxm.artworkUrl ?? artworkUrl;
   } else {
-    // Confirm via keyless iTunes when Musixmatch missed. On failure we KEEP the
-    // track (unverified) rather than dropping a likely-real recommendation.
-    const real = await verifyTrack(t.title, t.artist).catch(() => null);
-    if (real) {
+    // 2) iTunes existence check — authoritative commercial catalogue. Distinguish
+    //    "not in catalogue" (almost certainly an AI hallucination → DROP) from a
+    //    failed/inconclusive lookup (→ keep the track, just unverified).
+    const st = await verifyTrackStatus(t.title, t.artist).catch(
+      () => ({ status: "error" as const }),
+    );
+    if (st.status === "found") {
       verified = true;
-      title = real.title;
-      artist = real.artist;
-      artworkUrl = real.artworkUrl ?? artworkUrl;
+      title = st.title ?? title;
+      artist = st.artist ?? artist;
+      artworkUrl = st.artworkUrl ?? artworkUrl;
+    } else if (st.status === "not-found") {
+      fake = true;
     }
   }
 
@@ -164,7 +179,7 @@ async function enrichOne(t: RankedTrack, brief: Brief): Promise<RankedTrack> {
   const marketStatus: MarketSignal["status"] = "Unknown";
   const spotifyTrackId: string | null = mxm?.spotifyId ?? null;
 
-  // 2) Re-score on the REAL data so the ranking is accurate, not a guess.
+  // 3) Re-score on the REAL data so the ranking is accurate, not a guess.
   const realLang = mxm?.language ?? t.language;
   let score = t.syncFitScore;
   if (
@@ -178,24 +193,27 @@ async function enrichOne(t: RankedTrack, brief: Brief): Promise<RankedTrack> {
   }
   if (mxm?.explicit && brief.brandSafety === "Strict") score -= 16; // explicit vs strict
   if (typeof mxm?.popularity === "number") score += (mxm.popularity - 50) * 0.06; // recognizable helps
-  if (!verified) score -= 4; // unverified by Musixmatch — slight discount
+  if (!verified) score -= 4; // unverified — slight discount
   score = Math.round(clamp(score));
 
   return {
-    ...t,
-    title,
-    artist,
-    syncFitScore: score,
-    scoreLabel: labelForScore(score),
-    verified,
-    genre: mxm?.genre ?? t.genre,
-    explicit: mxm?.explicit,
-    popularity: mxm?.popularity,
-    language: realLang,
-    streams,
-    marketStatus,
-    spotifyTrackId,
-    artworkUrl,
+    track: {
+      ...t,
+      title,
+      artist,
+      syncFitScore: score,
+      scoreLabel: labelForScore(score),
+      verified,
+      genre: mxm?.genre ?? t.genre,
+      explicit: mxm?.explicit,
+      popularity: mxm?.popularity,
+      language: realLang,
+      streams,
+      marketStatus,
+      spotifyTrackId,
+      artworkUrl,
+    },
+    fake,
   };
 }
 

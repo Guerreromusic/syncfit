@@ -116,6 +116,80 @@ export async function verifyTrack(
   }
 }
 
+/**
+ * Like verifyTrack, but distinguishes "the catalogue answered and this exact
+ * title+artist is NOT there" (→ "not-found", almost certainly an AI
+ * hallucination, safe to drop) from "the lookup itself failed / was
+ * inconclusive" (→ "error", keep the track rather than drop a real one over a
+ * transient outage). iTunes is an authoritative commercial-music catalogue, so a
+ * confident no-match is a strong fake signal.
+ */
+/** Strict title match for VERIFICATION (not loose discovery search): exact, or a
+ *  candidate that adds decoration to the wanted title ("… (Remix)/(Live)"), or a
+ *  near-equal-length candidate inside the wanted title. A short real title must
+ *  NOT match a long invented one (so "Thunder" ≠ "Midnight Velvet Thunder Pulse"). */
+function strongTitleMatch(candTitle: string, wantTitle: string): boolean {
+  const c = normTitle(candTitle);
+  const w = normTitle(wantTitle);
+  if (!c || !w) return false;
+  if (c === w) return true;
+  if (w.length >= 4 && c.includes(w)) return true; // candidate has extra (e.g. remix)
+  if (c.length >= 5 && w.includes(c) && Math.abs(c.length - w.length) <= 4) return true;
+  return false;
+}
+
+function findCatalogueMatch(results: any[], title: string, artist: string): any | null {
+  const wantA = normTitle(artist);
+  for (const r of results) {
+    if (!strongTitleMatch(r.trackName ?? "", title)) continue;
+    const a = normTitle(r.artistName ?? "");
+    const artistOk = !wantA || (!!a && (a.includes(wantA) || wantA.includes(a)));
+    if (artistOk) return r;
+  }
+  return null;
+}
+
+function foundFrom(r: any) {
+  const art =
+    typeof r.artworkUrl100 === "string"
+      ? r.artworkUrl100.replace("100x100bb", "300x300bb")
+      : null;
+  return { status: "found" as const, title: r.trackName, artist: r.artistName, artworkUrl: art };
+}
+
+export async function verifyTrackStatus(
+  title: string,
+  artist: string,
+): Promise<{
+  status: "found" | "not-found" | "error";
+  title?: string;
+  artist?: string;
+  artworkUrl?: string | null;
+}> {
+  try {
+    // Primary: exact title + artist.
+    const combined = await itunesSearch(`${title} ${artist}`.trim());
+    const m1 = combined.length ? findCatalogueMatch(combined, title, artist) : null;
+    if (m1) return foundFrom(m1);
+
+    // Fallback: title only — corrects a slightly-off artist, and (since we ask the
+    // model for notable/charting tracks) confirms non-existence for fakes.
+    const titleOnly = await itunesSearch(title.trim());
+    if (titleOnly.length) {
+      const m2 = findCatalogueMatch(titleOnly, title, artist);
+      if (m2) return foundFrom(m2);
+      return { status: "not-found" }; // catalogue has songs, none is this title → fake
+    }
+
+    // Both queries empty. A genuinely notable track is never empty on both, so
+    // treat as a hallucination (we over-fetch 16 candidates, so the cost of a
+    // rare false drop is just one obscure track out of the set).
+    return { status: "not-found" };
+  } catch {
+    return { status: "error" }; // network/timeout → inconclusive, keep the track
+  }
+}
+
 /** One iTunes search pass — returns the raw results array (never throws). */
 async function itunesSearch(term: string): Promise<any[]> {
   const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
