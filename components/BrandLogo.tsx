@@ -3,10 +3,30 @@
 import * as React from "react";
 
 /**
- * Small brand logo for a brand named in the brief. Tries DuckDuckGo's icon
- * service, falls back to a Google favicon, and renders nothing if neither
- * resolves — all keyless. CSP already allows external https images.
+ * Small brand logo. Tries three keyless favicon/logo sources in order:
+ *   1. Clearbit Logo API (high-quality vector-sourced PNGs)
+ *   2. DuckDuckGo icon service
+ *   3. Google favicon service
+ * If all three fail, renders a letter avatar so something is always visible.
  */
+
+const BRAND_COLORS = [
+  "#7c3aed",
+  "#0d9488",
+  "#2563eb",
+  "#b45309",
+  "#dc2626",
+  "#059669",
+  "#9333ea",
+  "#0891b2",
+];
+
+function letterColor(name: string): string {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return BRAND_COLORS[Math.abs(h) % BRAND_COLORS.length];
+}
+
 export function BrandLogo({
   brand,
   className = "h-7 w-7",
@@ -19,27 +39,41 @@ export function BrandLogo({
   const domain = brand?.domain?.trim();
   const [step, setStep] = React.useState(0);
 
-  if (!brand || !domain || step > 1) {
-    // No logo available — optionally still show the brand name as a chip.
-    if (brand && showName) {
-      return (
-        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/[0.04] px-2 py-0.5 text-[11px] font-medium text-soft">
-          {brand.name}
-        </span>
-      );
-    }
-    return null;
-  }
+  if (!brand || !domain) return null;
 
-  const src =
-    step === 0
-      ? `https://icons.duckduckgo.com/ip3/${domain}.ico`
-      : `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  const SOURCES = [
+    `https://logo.clearbit.com/${domain}`,
+    `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+    `https://www.google.com/s2/favicons?domain=${domain}&sz=64`,
+  ];
+
+  // All sources exhausted → always render a letter avatar
+  if (step >= SOURCES.length) {
+    const initial = brand.name.trim().charAt(0).toUpperCase();
+    const bg = letterColor(brand.name);
+    const avatar = (
+      <span
+        className={`inline-flex shrink-0 select-none items-center justify-center rounded-full font-bold text-white ring-1 ring-inset ring-white/20 ${className}`}
+        style={{ background: bg, fontSize: "45%" }}
+        title={brand.name}
+        aria-label={brand.name}
+      >
+        {initial}
+      </span>
+    );
+    if (!showName) return avatar;
+    return (
+      <span className="inline-flex items-center gap-1.5">
+        {avatar}
+        <span className="text-[11px] font-medium text-soft">{brand.name}</span>
+      </span>
+    );
+  }
 
   const img = (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={src}
+      src={SOURCES[step]}
       alt={`${brand.name} logo`}
       title={brand.name}
       referrerPolicy="no-referrer"

@@ -3,6 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { PitchView } from "@/components/PitchView";
+import { BrandLogo } from "@/components/BrandLogo";
 import type { SavedReport } from "@/lib/types";
 import type { PitchTheme } from "@/lib/pitch-theme";
 
@@ -120,13 +121,14 @@ export function PitchPageClient({
                 <h1 className="text-3xl font-extrabold leading-tight text-white sm:text-4xl lg:text-5xl">
                   {report.track.title}
                 </h1>
-                <p className="mt-1.5 text-base font-medium text-white/60 sm:text-lg">
+                <p className="mt-1.5 flex flex-wrap items-center gap-2 text-base font-medium text-white/60 sm:text-lg">
                   {report.track.artist}
-                  {brand ? <span className="ml-2 text-white/40">·</span> : null}
                   {brand ? (
-                    <span className="ml-2" style={{ color: theme.accentLight }}>
-                      {brand.name}
-                    </span>
+                    <>
+                      <span className="text-white/40">·</span>
+                      <BrandLogo brand={brand} className="h-6 w-6" />
+                      <span style={{ color: theme.accentLight }}>{brand.name}</span>
+                    </>
                   ) : null}
                 </p>
               </div>
@@ -223,13 +225,14 @@ export function PitchPageClient({
                 <h1 className="text-3xl font-extrabold leading-tight text-slate-900 sm:text-4xl lg:text-5xl">
                   {report.track.title}
                 </h1>
-                <p className="mt-1.5 text-base font-medium text-slate-500 sm:text-lg">
+                <p className="mt-1.5 flex flex-wrap items-center gap-2 text-base font-medium text-slate-500 sm:text-lg">
                   {report.track.artist}
-                  {brand ? <span className="ml-2 text-slate-300">·</span> : null}
                   {brand ? (
-                    <span className="ml-2 font-semibold" style={{ color: theme.accent }}>
-                      {brand.name}
-                    </span>
+                    <>
+                      <span className="text-slate-300">·</span>
+                      <BrandLogo brand={brand} className="h-6 w-6" />
+                      <span className="font-semibold" style={{ color: theme.accent }}>{brand.name}</span>
+                    </>
                   ) : null}
                 </p>
               </div>
