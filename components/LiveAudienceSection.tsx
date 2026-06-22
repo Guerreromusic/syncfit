@@ -346,30 +346,29 @@ export function LiveAudienceSection() {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-soft">
               Online now
             </p>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               {(data?.online ?? []).map((user) => {
                 const piece = PUZZLE_PIECES[user.puzzlePieceIndex] ?? PUZZLE_PIECES[0];
                 const lastPage = user.pages?.at(-1);
                 return (
                   <div
                     key={user.sessionId}
-                    className={`flex items-start gap-2.5 rounded-xl border border-white/10 p-3 ${piece.bgClass}`}
+                    className={`flex items-center gap-2.5 rounded-full border border-white/10 py-1.5 pl-1.5 pr-4 ${piece.bgClass}`}
                   >
-                    <PuzzlePieceSVG index={user.puzzlePieceIndex} size={38} />
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-white">{user.musicalName}</p>
-                      <p className="mt-0.5 inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] font-semibold text-soft">
-                        {piece.sound}
+                    <PuzzlePieceSVG index={user.puzzlePieceIndex} size={36} />
+                    <div className="min-w-0 flex-1">
+                      <p className="flex items-center gap-1.5 truncate text-sm font-bold text-white">
+                        {user.musicalName}
+                        <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.06] px-1.5 py-0 text-[9px] font-semibold text-soft">
+                          {piece.sound}
+                        </span>
                       </p>
-                      <p className="mt-1 truncate text-[11px] text-soft">
-                        {fmtLocation(user.country, user.city)}
-                      </p>
-                      {lastPage && (
-                        <p className="truncate text-[11px] text-lime-400/70">
-                          → {friendlyPath(lastPage.path)}
-                        </p>
-                      )}
                       <p className="truncate text-[11px] text-soft">
+                        {fmtLocation(user.country, user.city)}
+                        {lastPage && (
+                          <span className="text-lime-400/70"> · → {friendlyPath(lastPage.path)}</span>
+                        )}
+                        {" · "}
                         {fmtDuration(user.totalSeconds)} online
                       </p>
                     </div>
