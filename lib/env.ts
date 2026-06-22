@@ -38,6 +38,9 @@ export const isConfigured = {
   spotify: () =>
     has(process.env.SPOTIFY_CLIENT_ID) && has(process.env.SPOTIFY_CLIENT_SECRET),
   elevenlabs: () => has(process.env.ELEVENLABS_API_KEY),
+  // Durable storage — Vercel Blob. Without it, reports/projects/analytics fall
+  // back to ephemeral per-instance /tmp and DO NOT survive deploys or scale.
+  storage: () => has(process.env.BLOB_READ_WRITE_TOKEN),
 };
 
 /**
@@ -103,6 +106,14 @@ export function getApiStatuses(): ApiStatus[] {
       label: "Brand logos",
       state: "connected",
       note: "Connected — keyless brand logos from the brief (DuckDuckGo / Google).",
+    },
+    {
+      key: "storage",
+      label: "Durable storage",
+      state: isConfigured.storage() ? "connected" : "optional",
+      note: isConfigured.storage()
+        ? "Connected — reports, projects & Live Audience persist in Vercel Blob."
+        : "Ephemeral — set BLOB_READ_WRITE_TOKEN (Vercel → Storage → Blob) so saved reports & the Live Audience log survive deploys. Without it, data is stored per-instance in /tmp and resets.",
     },
   ];
 }

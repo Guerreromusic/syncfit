@@ -468,7 +468,9 @@ export async function getTrendingLatin(): Promise<TrendingTrack[]> {
       },
     );
     const data = results.filter((t): t is TrendingTrack => Boolean(t));
-    trendingCache = { data, ts: Date.now() };
+    // Only cache a non-empty result — otherwise a transient failure would pin an
+    // empty list on this serverless instance for the full TTL.
+    if (data.length) trendingCache = { data, ts: Date.now() };
     return data;
   }
 
@@ -554,6 +556,8 @@ export async function getTrendingLatin(): Promise<TrendingTrack[]> {
     .filter((t): t is TrendingTrack => Boolean(t))
     .slice(0, 100);
 
-  trendingCache = { data, ts: Date.now() };
+  // Only cache a non-empty result so a transient upstream failure can't pin an
+  // empty trending list on this serverless instance for the full TTL.
+  if (data.length) trendingCache = { data, ts: Date.now() };
   return data;
 }

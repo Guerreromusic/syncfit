@@ -318,7 +318,8 @@ export type ApiKey =
   | "elevenlabs"
   | "musicbrainz"
   | "previews"
-  | "logos";
+  | "logos"
+  | "storage";
 
 export type ApiStatusState =
   | "connected"
