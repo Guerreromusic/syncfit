@@ -98,6 +98,9 @@ export function ResearchChat() {
   const briefRef = React.useRef(""); // last brief text (carried to track picks + QA)
   const ctxRef = React.useRef<TrackQAContext | null>(null); // current track for follow-ups
   const qaRef = React.useRef<TrackQAMessage[]>([]); // running QA history for the current track
+  // A Spotify link pasted with no brief is held here until the user enters a
+  // brief; the next message then scores ONLY that linked track against it.
+  const pendingSpotifyLinkRef = React.useRef<string | null>(null);
   const scrollRef = React.useRef<HTMLDivElement | null>(null);
   const taRef = React.useRef<HTMLTextAreaElement | null>(null);
   const fileRef = React.useRef<HTMLInputElement | null>(null);
@@ -376,7 +379,27 @@ export function ResearchChat() {
       if (link) {
         // Pasting a link picks that exact song — clears any deployed selection.
         selectTrack(null);
-        void runResearch({ briefText: t });
+        const briefBeside = t.replace(SPOTIFY_STRIP_RE, "").trim();
+        if (briefBeside.length > 0) {
+          // Link + brief together → score just this track now.
+          pendingSpotifyLinkRef.current = null;
+          void runResearch({ briefText: t });
+        } else {
+          // Link only → remember it and ask for a brief. The NEXT message scores
+          // ONLY this track against that brief — never a 10-track discovery.
+          pendingSpotifyLinkRef.current = t;
+          add({
+            role: "assistant",
+            kind: "qa",
+            text:
+              "Got the Spotify track. What's the brief? Add a short placement (e.g. “30s upbeat car ad, family-friendly”) and I'll score just this song against it.",
+          });
+        }
+      } else if (pendingSpotifyLinkRef.current) {
+        // A Spotify link is waiting for its brief → score ONLY that track.
+        const pendingLink = pendingSpotifyLinkRef.current;
+        pendingSpotifyLinkRef.current = null;
+        void runResearch({ briefText: `${t} ${pendingLink}` });
       } else if (selectedTrackRef.current) {
         // A track was deployed from Trending/Dashboard → score IT against this brief.
         const track = selectedTrackRef.current;
