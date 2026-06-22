@@ -28,8 +28,6 @@ export const env = {
   // Default ElevenLabs voice ("Rachel"); override with ELEVENLABS_VOICE_ID.
   elevenlabsVoice: () =>
     process.env.ELEVENLABS_VOICE_ID?.trim() || "21m00Tcm4TlvDq8ikWAM",
-  // ElevenLabs Conversational AI agent id for the hands-free voice assistant.
-  elevenlabsAgentId: () => process.env.ELEVENLABS_AGENT_ID?.trim() || "",
 };
 
 export const isConfigured = {
@@ -40,9 +38,6 @@ export const isConfigured = {
   spotify: () =>
     has(process.env.SPOTIFY_CLIENT_ID) && has(process.env.SPOTIFY_CLIENT_SECRET),
   elevenlabs: () => has(process.env.ELEVENLABS_API_KEY),
-  // The voice assistant needs BOTH the key (to mint a signed URL) and an agent id.
-  voiceAgent: () =>
-    has(process.env.ELEVENLABS_API_KEY) && has(process.env.ELEVENLABS_AGENT_ID),
 };
 
 /**
@@ -88,8 +83,8 @@ export function getApiStatuses(): ApiStatus[] {
       label: "ElevenLabs",
       state: isConfigured.elevenlabs() ? "connected" : "optional",
       note: isConfigured.elevenlabs()
-        ? "Connected — read pitches & results aloud + the hands-free voice Agent (Conversational AI)."
-        : "Optional — set ELEVENLABS_API_KEY for read-aloud + the voice Agent.",
+        ? "Connected — read pitches & results aloud (TTS)."
+        : "Optional — set ELEVENLABS_API_KEY for read-aloud (TTS).",
     },
     {
       key: "musicbrainz",

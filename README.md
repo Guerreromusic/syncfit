@@ -79,14 +79,9 @@ Every score report can become a pitch:
 
 ---
 
-## Voice AI assistant
+## Read Aloud (TTS)
 
-A real-time conversational AI agent powered by **ElevenLabs ConvAI**:
-
-- **WebRTC primary** (traverses firewalls) with WebSocket fallback.
-- Grounded on the SyncFit platform — knows scores, briefs, brand safety, licensing, and placement context.
-- Available on the **Agent** page (full-page) and as a floating panel on every section.
-- Also: **Read Aloud** (TTS) on every pitch summary — tap the speaker icon.
+**Read Aloud** powered by **ElevenLabs** is available on every pitch summary and result — tap the speaker icon to have the Synclat-generated pitch or result narrated, with an inline play/pause and progress bar. Only Synclat-generated text is ever sent for narration — never lyrics.
 
 ---
 
@@ -111,7 +106,6 @@ The player is **draggable**, never autoplays, and pauses on navigation.
 | **Score Reports** | Every saved evaluation, searchable, with archive + share |
 | **Projects** | Pitch a single track or bundle several into a swipeable, shareable multi-track pitch project |
 | **Track Arena** | Benchmark up to 3 tracks head-to-head against one brief |
-| **Agent** | Real-time voice AI partner — scores, briefs, brand safety, hands-free |
 | **How it works** | Platform explainer and API guide |
 | **Settings** | Live API connection status and data policy |
 
@@ -124,7 +118,7 @@ The player is **draggable**, never autoplays, and pauses on navigation.
 | Framework | Next.js 14 (App Router) + TypeScript + Tailwind CSS v3 |
 | Core music data | **Musixmatch API** — search, metadata, explicit flag, short lyric context & translation |
 | AI reasoning | **OpenRouter** (`openai/gpt-5-mini` default) — SyncFit analysis, demographics, geo-influence |
-| Voice AI | **ElevenLabs** — TTS read-aloud + ConvAI real-time voice agent (WebRTC) |
+| Voice AI | **ElevenLabs** — TTS read-aloud (narrates pitches & results) |
 | Campaign banners | **Higgsfield** — AI-generated cinematic marketing visuals (`nano_banana_pro` model) |
 | Market signals | **Songstats** — streaming data, Shazam counts, playlist reach |
 | Full-track playback | **Spotify** — Web Playback SDK (Premium) + metadata via Client Credentials |
@@ -186,8 +180,7 @@ npm run typecheck  # tsc --noEmit
 |---|:---:|---|
 | `MUSIXMATCH_API_KEY` | Core¹ | Track search, metadata, lyric context |
 | `OPENROUTER_API_KEY` | Core¹ | AI analysis, demographics, geo-influence |
-| `ELEVENLABS_API_KEY` | Optional | TTS read-aloud + ConvAI voice agent |
-| `ELEVENLABS_AGENT_ID` | Optional | ConvAI agent ID for the voice assistant |
+| `ELEVENLABS_API_KEY` | Optional | TTS read-aloud (narrates pitches & results) |
 | `HIGGSFIELD_API_KEY` | Optional | AI campaign banner generation on pitches |
 | `SONGSTATS_API_KEY` | Optional | Market signal + worldwide trending |
 | `SPOTIFY_CLIENT_ID` | Optional | Metadata + full-track playback |
@@ -221,8 +214,7 @@ SyncFit/
 ├── app/
 │   ├── layout.tsx                 # Sidebar + Topbar shell, PlayerProvider
 │   ├── page.tsx                   # Dashboard — trending, stats, recent reports
-│   ├── analyzer/page.tsx          # Research console (chat + voice + attach)
-│   ├── agent/page.tsx             # Full-page ElevenLabs ConvAI voice assistant
+│   ├── analyzer/page.tsx          # Research console (chat + mic dictation + attach)
 │   ├── report/[id]/page.tsx       # Score report — banner gen button + full analysis
 │   ├── projects/…                 # Projects board/list + pitch pages
 │   ├── arena/page.tsx             # Track Arena (head-to-head, up to 3 tracks)
@@ -236,7 +228,7 @@ SyncFit/
 │       ├── lyrics · brand-dna · credits
 │       ├── preview/ · preview/audio/   # Deezer/iTunes 30s proxy
 │       ├── spotify/{login,callback,token,logout}  # Full-track OAuth + SDK
-│       ├── voice · tts            # ElevenLabs WebRTC agent + TTS
+│       ├── tts                    # ElevenLabs read-aloud TTS
 │       └── reports/ · pitch-projects/ · trending · status · extract
 ├── components/
 │   ├── ResearchChat.tsx           # LLM console — research + Q&A + deploy
@@ -246,7 +238,7 @@ SyncFit/
 │   ├── GenerateBannerButton.tsx   # One-click Higgsfield banner generation
 │   ├── GeoInfluenceCard.tsx       # d3-geo world influence map
 │   ├── DemographicsCard.tsx       # Age bands + faith resonance + appeal
-│   ├── VoiceAssistant.tsx         # ElevenLabs ConvAI (WebRTC + WS fallback)
+│   ├── ReadAloud.tsx              # ElevenLabs TTS read-aloud player
 │   ├── Sidebar.tsx                # Desktop nav (with research-pulse badge)
 │   ├── Topbar.tsx                 # Mobile nav (with research-pulse badge)
 │   └── …
