@@ -10,7 +10,7 @@ export async function GET() {
   const steps: Record<string, unknown> = {};
   steps.tokenPresent = Boolean(process.env.BLOB_READ_WRITE_TOKEN);
   try {
-    const key = `_diag/probe-${Date.now()}.json`;
+    const key = `blobcheck/probe-${Date.now()}.json`;
     const written = await put(key, JSON.stringify({ ok: true, t: Date.now() }), {
       access: "public",
       addRandomSuffix: false,
@@ -19,7 +19,7 @@ export async function GET() {
     steps.putOk = true;
     steps.putUrl = written.url ? "present" : "missing";
 
-    const listed = await list({ prefix: "_diag/" });
+    const listed = await list({ prefix: "blobcheck/" });
     steps.listOk = true;
     steps.listCount = listed.blobs.length;
 
@@ -27,7 +27,6 @@ export async function GET() {
     steps.fetchStatus = res.status;
     steps.fetchOk = res.ok;
 
-    // cleanup
     await del(written.url);
     steps.delOk = true;
 
