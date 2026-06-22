@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { upsertSession, readAnalytics, isOnline } from "@/lib/analytics";
+import { activeSeconds, isPublicPath } from "@/lib/analytics-shared";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -66,6 +67,10 @@ export async function GET() {
     const online = store.sessions.filter(isOnline);
     const recent = store.sessions.slice(0, 200);
 
+    // Drop internal/removed routes (e.g. probes, /agent) from public-facing pages.
+    const publicPages = (s: (typeof store.sessions)[number]) =>
+      (s.pages ?? []).filter((p) => isPublicPath(p.path));
+
     return NextResponse.json({
       onlineCount: online.length,
       online: online.map((s) => ({
@@ -75,10 +80,14 @@ export async function GET() {
         country: s.country,
         city: s.city,
         firstSeen: s.firstSeen,
-        totalSeconds: s.totalSeconds,
-        pages: s.pages,
+        totalSeconds: activeSeconds(s),
+        pages: publicPages(s),
       })),
-      recentSessions: recent,
+      recentSessions: recent.map((s) => ({
+        ...s,
+        totalSeconds: activeSeconds(s),
+        pages: publicPages(s),
+      })),
     });
   } catch {
     return NextResponse.json(

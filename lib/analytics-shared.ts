@@ -80,3 +80,33 @@ export function isOnline(session: AnalyticsSession): boolean {
   const cutoff = Date.now() - 2 * 60 * 1000;
   return new Date(session.lastSeen).getTime() > cutoff;
 }
+
+/**
+ * Active seconds a visitor spent, bounded by physical reality: time on the
+ * platform can never exceed the wall-clock span between firstSeen and lastSeen.
+ * This sanitizes legacy records inflated by an old cumulative-heartbeat bug
+ * (which could report hundreds of "hours") without needing a data migration —
+ * both new reads and existing Blob records get clamped on the way out.
+ */
+export function activeSeconds(session: {
+  totalSeconds: number;
+  firstSeen: string;
+  lastSeen: string;
+}): number {
+  const span = Math.max(
+    0,
+    Math.round(
+      (new Date(session.lastSeen).getTime() -
+        new Date(session.firstSeen).getTime()) /
+        1000,
+    ),
+  );
+  const total = Number.isFinite(session.totalSeconds) ? session.totalSeconds : 0;
+  return Math.max(0, Math.min(total, span));
+}
+
+/** Routes that are internal probes or no longer exist — hidden from public analytics. */
+const HIDDEN_PATHS = new Set(["/test-probe", "/agent"]);
+export function isPublicPath(path: string): boolean {
+  return !HIDDEN_PATHS.has(path) && !path.startsWith("/test");
+}
