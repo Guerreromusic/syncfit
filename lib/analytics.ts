@@ -65,17 +65,20 @@ async function blobReadAnalytics(): Promise<AnalyticsStore> {
 }
 
 async function blobWriteAnalytics(store: AnalyticsStore): Promise<void> {
+  // The put() MUST surface its error so readAnalytics/writeAnalytics can fall
+  // back to the file store (e.g. when the Blob store is suspended/over-quota).
+  // Only the prune is best-effort.
+  await put(
+    `${ANALYTICS_PREFIX}snap-${Date.now()}.json`,
+    JSON.stringify(store),
+    { access: "public", addRandomSuffix: false, contentType: "application/json" },
+  );
   try {
-    await put(
-      `${ANALYTICS_PREFIX}snap-${Date.now()}.json`,
-      JSON.stringify(store),
-      { access: "public", addRandomSuffix: false, contentType: "application/json" },
-    );
     const snaps = await listAnalyticsSnapshots();
     const stale = snaps.slice(5);
     if (stale.length) await del(stale.map((b) => b.url));
   } catch {
-    /* best-effort */
+    /* prune is best-effort */
   }
 }
 
@@ -115,12 +118,35 @@ async function fileWriteAnalytics(store: AnalyticsStore): Promise<void> {
 // Public read/write
 // -----------------------------------------------------------------------------
 
+// Once a Blob op fails on this serverless instance (e.g. the store is suspended
+// or over quota), stop using Blob for the life of the instance and serve the
+// local file store instead — so Live Audience keeps working per-instance rather
+// than silently failing every read/write. Reset only on a fresh instance.
+let blobUnhealthy = false;
+
 export async function readAnalytics(): Promise<AnalyticsStore> {
-  return USE_BLOB ? blobReadAnalytics() : fileReadAnalytics();
+  if (USE_BLOB && !blobUnhealthy) {
+    try {
+      return await blobReadAnalytics();
+    } catch {
+      blobUnhealthy = true;
+    }
+  }
+  return fileReadAnalytics();
 }
 
 async function writeAnalytics(store: AnalyticsStore): Promise<void> {
-  return USE_BLOB ? blobWriteAnalytics(store) : fileWriteAnalytics(store);
+  if (USE_BLOB && !blobUnhealthy) {
+    try {
+      await blobWriteAnalytics(store);
+      return;
+    } catch {
+      // Blob store unreachable (suspended/over-quota) — degrade to the file
+      // store for this instance so the write isn't lost.
+      blobUnhealthy = true;
+    }
+  }
+  return fileWriteAnalytics(store);
 }
 
 // Re-export isOnline for callers that import from this module

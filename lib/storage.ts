@@ -67,20 +67,22 @@ async function blobReadAll(): Promise<SavedReport[]> {
 }
 
 async function blobWriteAll(reports: SavedReport[]): Promise<void> {
+  // New immutable snapshot of the FULL list each write (random suffix => unique
+  // url, so reads are always fresh despite the CDN's 60s public-read cache).
+  // The put() MUST surface its error so writeAll can fall back to the file store
+  // when Blob is unreachable (e.g. the store is suspended / over quota).
+  await put(`${REPORTS_PREFIX}reports.json`, JSON.stringify(reports), {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: "application/json",
+  });
+  // Best-effort prune: keep only the newest few snapshots.
   try {
-    // New immutable snapshot of the FULL list each write (random suffix => unique
-    // url, so reads are always fresh despite the CDN's 60s public-read cache).
-    await put(`${REPORTS_PREFIX}reports.json`, JSON.stringify(reports), {
-      access: "public",
-      addRandomSuffix: true,
-      contentType: "application/json",
-    });
-    // Best-effort prune: keep only the newest few snapshots.
     const snaps = await listSnapshots();
     const stale = snaps.slice(3);
     if (stale.length) await del(stale.map((b) => b.url));
   } catch {
-    /* best-effort — never 500 a route on a storage hiccup */
+    /* prune is best-effort */
   }
 }
 
@@ -104,14 +106,35 @@ async function fileWriteAll(reports: SavedReport[]): Promise<void> {
   }
 }
 
+// Once a Blob op fails on this serverless instance (store suspended / over
+// quota / unreachable), stop using Blob for the instance's lifetime and serve
+// the local file store instead — so reports & projects keep working per-instance
+// rather than silently failing every read/write.
+let blobUnhealthy = false;
+
 // Resilient by design: any error yields an empty list / silent write so listing
 // or saving reports never 500s a page.
 async function readAll(): Promise<SavedReport[]> {
-  return USE_BLOB ? blobReadAll() : fileReadAll();
+  if (USE_BLOB && !blobUnhealthy) {
+    try {
+      return await blobReadAll();
+    } catch {
+      blobUnhealthy = true;
+    }
+  }
+  return fileReadAll();
 }
 
 async function writeAll(reports: SavedReport[]): Promise<void> {
-  return USE_BLOB ? blobWriteAll(reports) : fileWriteAll(reports);
+  if (USE_BLOB && !blobUnhealthy) {
+    try {
+      await blobWriteAll(reports);
+      return;
+    } catch {
+      blobUnhealthy = true;
+    }
+  }
+  return fileWriteAll(reports);
 }
 
 // -----------------------------------------------------------------------------
@@ -128,19 +151,7 @@ async function listProjectSnapshots() {
   );
 }
 
-async function readAllProjects(): Promise<PitchProject[]> {
-  if (USE_BLOB) {
-    try {
-      const snaps = await listProjectSnapshots();
-      if (!snaps.length) return [];
-      const res = await fetch(snaps[0].url, { cache: "no-store" });
-      if (!res.ok) return [];
-      const parsed = await res.json();
-      return Array.isArray(parsed) ? (parsed as PitchProject[]) : [];
-    } catch {
-      return [];
-    }
-  }
+async function fileReadAllProjects(): Promise<PitchProject[]> {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
     const raw = await fs.readFile(PROJECTS_FILE, "utf8").catch(() => "[]");
@@ -151,28 +162,61 @@ async function readAllProjects(): Promise<PitchProject[]> {
   }
 }
 
-async function writeAllProjects(projects: PitchProject[]): Promise<void> {
-  if (USE_BLOB) {
-    try {
-      await put(`${PROJECTS_PREFIX}projects.json`, JSON.stringify(projects), {
-        access: "public",
-        addRandomSuffix: true,
-        contentType: "application/json",
-      });
-      const snaps = await listProjectSnapshots();
-      const stale = snaps.slice(3);
-      if (stale.length) await del(stale.map((b) => b.url));
-    } catch {
-      /* best-effort */
-    }
-    return;
-  }
+async function fileWriteAllProjects(projects: PitchProject[]): Promise<void> {
   try {
     await fs.mkdir(DATA_DIR, { recursive: true });
     await fs.writeFile(PROJECTS_FILE, JSON.stringify(projects, null, 2), "utf8");
   } catch {
     /* ignore — ephemeral demo storage */
   }
+}
+
+async function blobReadAllProjects(): Promise<PitchProject[]> {
+  const snaps = await listProjectSnapshots();
+  if (!snaps.length) return [];
+  const res = await fetch(snaps[0].url, { cache: "no-store" });
+  if (!res.ok) return [];
+  const parsed = await res.json();
+  return Array.isArray(parsed) ? (parsed as PitchProject[]) : [];
+}
+
+async function blobWriteAllProjects(projects: PitchProject[]): Promise<void> {
+  // put() MUST throw so writeAllProjects can fall back to the file store.
+  await put(`${PROJECTS_PREFIX}projects.json`, JSON.stringify(projects), {
+    access: "public",
+    addRandomSuffix: true,
+    contentType: "application/json",
+  });
+  try {
+    const snaps = await listProjectSnapshots();
+    const stale = snaps.slice(3);
+    if (stale.length) await del(stale.map((b) => b.url));
+  } catch {
+    /* prune is best-effort */
+  }
+}
+
+async function readAllProjects(): Promise<PitchProject[]> {
+  if (USE_BLOB && !blobUnhealthy) {
+    try {
+      return await blobReadAllProjects();
+    } catch {
+      blobUnhealthy = true;
+    }
+  }
+  return fileReadAllProjects();
+}
+
+async function writeAllProjects(projects: PitchProject[]): Promise<void> {
+  if (USE_BLOB && !blobUnhealthy) {
+    try {
+      await blobWriteAllProjects(projects);
+      return;
+    } catch {
+      blobUnhealthy = true;
+    }
+  }
+  return fileWriteAllProjects(projects);
 }
 
 /** Short, URL-safe id. */
