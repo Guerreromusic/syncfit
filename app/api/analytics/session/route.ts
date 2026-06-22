@@ -5,6 +5,15 @@ import { activeSeconds, isPublicPath } from "@/lib/analytics-shared";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
+/** Percent-decode a value, falling back to the raw string if it isn't valid. */
+function safeDecode(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 // -----------------------------------------------------------------------------
 // POST /api/analytics/session
 // Body: { sessionId: string; path?: string; seconds?: number }
@@ -34,9 +43,10 @@ export async function POST(req: NextRequest) {
       (forwardedFor ? forwardedFor.split(",")[0].trim() : "") ||
       "0.0.0.0";
 
-    // Extract geo from Vercel headers
+    // Extract geo from Vercel headers. The city header is percent-encoded
+    // (e.g. "Medell%C3%ADn") — decode it so accented/non-ASCII names render.
     const country = req.headers.get("x-vercel-ip-country") ?? "";
-    const city = req.headers.get("x-vercel-ip-city") ?? "";
+    const city = safeDecode(req.headers.get("x-vercel-ip-city") ?? "");
 
     const session = await upsertSession(sessionId, {
       ip,
@@ -78,13 +88,14 @@ export async function GET() {
         musicalName: s.musicalName,
         puzzlePieceIndex: s.puzzlePieceIndex,
         country: s.country,
-        city: s.city,
+        city: safeDecode(s.city),
         firstSeen: s.firstSeen,
         totalSeconds: activeSeconds(s),
         pages: publicPages(s),
       })),
       recentSessions: recent.map((s) => ({
         ...s,
+        city: safeDecode(s.city),
         totalSeconds: activeSeconds(s),
         pages: publicPages(s),
       })),
