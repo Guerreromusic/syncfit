@@ -77,7 +77,8 @@ export async function POST(req: Request) {
     });
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      return NextResponse.json({ error: `Higgsfield API error ${res.status}: ${text}` }, { status: 502 });
+      console.error("[/api/banner] Higgsfield submit", res.status, text);
+      return NextResponse.json({ error: "Couldn't start banner generation." }, { status: 502 });
     }
     const data = await res.json();
     jobId = data.id ?? data.job_id ?? data.jobId ?? "";
@@ -85,7 +86,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No job ID in Higgsfield response." }, { status: 502 });
     }
   } catch (e) {
-    return NextResponse.json({ error: `Higgsfield request failed: ${String(e)}` }, { status: 502 });
+    console.error("[/api/banner] Higgsfield request failed", e);
+    return NextResponse.json({ error: "Couldn't start banner generation." }, { status: 502 });
   }
 
   // Poll for completion (up to ~50 s with 2 s intervals)
@@ -110,11 +112,16 @@ export async function POST(req: Request) {
         if (!url) {
           return NextResponse.json({ error: "No image URL in Higgsfield response." }, { status: 502 });
         }
-        await setReportBanner(reportId, url);
+        const saved = await setReportBanner(reportId, url);
+        if (!saved) {
+          console.error("[/api/banner] setReportBanner failed for", reportId);
+          return NextResponse.json({ error: "Couldn't save the banner. Try again." }, { status: 502 });
+        }
         return NextResponse.json({ bannerUrl: url });
       }
       if (status === "failed" || status === "error") {
-        return NextResponse.json({ error: data.error ?? "Banner generation failed." }, { status: 502 });
+        console.error("[/api/banner] Higgsfield job failed", data?.error);
+        return NextResponse.json({ error: "Banner generation failed. Please try again." }, { status: 502 });
       }
     } catch {
       // transient — keep polling

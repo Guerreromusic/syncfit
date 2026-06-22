@@ -184,11 +184,18 @@ export function heuristicAnalysis(input: {
   moodEnergyFit = clamp(moodEnergyFit, 4, 15);
 
   // --- Brand Safety (15) ---
-  let brandSafety = 13;
+  // Score reflects how well the track's explicitness matches the brief's
+  // required safety level — a clean track is a stronger match when the brief
+  // demands "Strict", and explicitness is penalised hardest under "Strict".
+  let brandSafety: number;
   if (track.explicit) {
     if (brief.brandSafety === "Strict") brandSafety = 4;
     else if (brief.brandSafety === "Medium") brandSafety = 8;
-    else brandSafety = 11;
+    else brandSafety = 13; // explicit is fine when safety isn't a concern
+  } else {
+    if (brief.brandSafety === "Strict") brandSafety = 15; // clean + strict = perfect
+    else if (brief.brandSafety === "Medium") brandSafety = 13;
+    else brandSafety = 11; // clean, but safety not a differentiator
   }
   brandSafety = clamp(brandSafety, 3, 15);
 

@@ -59,8 +59,12 @@ export function EditableName({
       // Refresh the server-rendered tree so list/card views pick up the new name.
       router.refresh();
     } catch {
-      setName(prev); // revert
+      setName(prev); // revert the optimistic name
       setError(true);
+      // Keep what the user typed and re-open the editor so they can retry
+      // inline instead of losing their draft.
+      setDraft(next);
+      setEditing(true);
     } finally {
       setSaving(false);
     }

@@ -20,7 +20,7 @@ async function deezerSearch(term: string): Promise<any[]> {
   const url = `https://api.deezer.com/search?q=${encodeURIComponent(term)}&limit=10`;
   const res = await fetchWithTimeout(url, { cache: "no-store" }, 8000);
   if (!res.ok) return [];
-  const json = await res.json();
+  const json = await res.json().catch(() => null);
   return Array.isArray(json?.data) ? json.data : [];
 }
 

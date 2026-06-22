@@ -15,6 +15,7 @@
 import { env, isConfigured } from "../env";
 import { labelForScore } from "../scoring";
 import { isAllowedModel } from "../models";
+import { fetchWithTimeout } from "../fetchWithTimeout";
 import {
   SYNCFIT_SYSTEM_PROMPT,
   buildSyncFitUserPrompt,
@@ -40,6 +41,12 @@ import type {
 } from "../types";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+// Bound every OpenRouter call below Vercel's 60s function cap so a hung upstream
+// returns a clean error instead of letting the whole serverless function be killed.
+const OPENROUTER_TIMEOUT_MS = 50_000;
+const orFetch = (init: RequestInit) =>
+  fetchWithTimeout(OPENROUTER_URL, init, OPENROUTER_TIMEOUT_MS);
 
 export class OpenRouterNotConfiguredError extends Error {
   constructor() {
@@ -73,7 +80,7 @@ export async function runSyncFitAnalysis(
   // Use the caller's validated model, or fall back to the env/default model.
   const model = isAllowedModel(input.model) ? input.model : env.openrouterModel();
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -148,7 +155,11 @@ export function parseAnalysisJson(content: string): unknown {
       const start = fenced.indexOf("{");
       const end = fenced.lastIndexOf("}");
       if (start !== -1 && end !== -1 && end > start) {
-        return JSON.parse(fenced.slice(start, end + 1));
+        try {
+          return JSON.parse(fenced.slice(start, end + 1));
+        } catch {
+          throw new Error("AI output was not valid JSON");
+        }
       }
       throw new Error("AI output was not valid JSON");
     }
@@ -291,7 +302,7 @@ export async function runTrackDiscovery(
 
   const model = isAllowedModel(input.model) ? input.model : env.openrouterModel();
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -451,7 +462,7 @@ ${input.brief}
 
 Translate the snippet to ${target}; analyse what the lyric conveys (mood, themes, meaning) on its own; then highlight the brief-matching keywords, explain what each highlight means and why it fits the brief, and give an overall match read.`;
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -562,7 +573,7 @@ ${
 
 Give this track's Brand DNA: its brand personality, the brands it fits, and the placements it works for.`;
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -656,7 +667,7 @@ Use ONLY those exact region ids. No markdown, no commentary, no extra fields.`;
 
 Map this track's worldwide influence by region, with a short reason for each (lead with the language).`;
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -744,7 +755,7 @@ Use ONLY those exact age labels. No markdown, no commentary, no extra fields.`;
 
 Estimate the aggregate listener demographics (ages, cultural/faith resonance, appeal).`;
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -854,7 +865,7 @@ Use ONLY the exact region ids and age labels listed above. No markdown, no comme
 
 Produce the unified world intelligence object: geo regions with rich territory detail, plus global audience demographics.`;
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -987,7 +998,7 @@ ${facts}`;
     .slice(-8)
     .map((m) => ({ role: m.role, content: m.content }));
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {
@@ -1040,7 +1051,7 @@ Help the user understand and use THIS section, and answer questions about SyncFi
     .slice(-8)
     .map((m) => ({ role: m.role, content: m.content }));
 
-  const res = await fetch(OPENROUTER_URL, {
+  const res = await orFetch({
     method: "POST",
     cache: "no-store",
     headers: {

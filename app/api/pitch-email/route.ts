@@ -79,7 +79,8 @@ export async function POST(req: Request) {
   } = body;
 
   // Validate
-  if (!email || !email.includes("@")) {
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (typeof email !== "string" || !EMAIL_RE.test(email.trim())) {
     return NextResponse.json(
       { ok: false, error: "A valid email address is required." },
       { status: 400 },

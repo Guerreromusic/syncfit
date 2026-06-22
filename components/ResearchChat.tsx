@@ -595,6 +595,7 @@ export function ResearchChat() {
                 }
               }}
               rows={1}
+              aria-label="Describe a placement, paste a Spotify link, or ask about a track"
               placeholder={
                 selectedTrack
                   ? `Describe the placement to score “${selectedTrack.title}”…`
@@ -847,7 +848,7 @@ function DiscoverList({
       </p>
       <ul className="divide-y divide-white/5">
         {tracks.map((t, i) => (
-          <li key={t.title + t.artist + i} className="flex items-center gap-2.5 px-3 py-2 transition hover:bg-white/[0.02]">
+          <li key={t.spotifyTrackId ?? `${t.title}|${t.artist}|${i}`} className="flex items-center gap-2.5 px-3 py-2 transition hover:bg-white/[0.02]">
             <span className="w-4 shrink-0 text-center text-xs font-semibold tabular-nums text-soft">{i + 1}</span>
             <TrackCover url={t.artworkUrl} circle className="h-10 w-10 shrink-0" />
             <div className="min-w-0 flex-1">
