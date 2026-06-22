@@ -102,8 +102,14 @@ export async function POST(req: Request) {
     try {
       // eslint-disable-next-line no-new-func
       const requireFn = new Function("m", "return require(m)") as (m: string) => unknown;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const nodemailer = requireFn("nodemailer") as any;
+      // Minimal nodemailer surface — typed explicitly so we avoid `any` and the
+      // module stays an optional runtime dependency (not in package.json).
+      type Nodemailer = {
+        createTransport: (opts: unknown) => {
+          sendMail: (msg: unknown) => Promise<unknown>;
+        };
+      };
+      const nodemailer = requireFn("nodemailer") as Nodemailer;
 
       const transporter = nodemailer.createTransport({
         host: smtpHost,
