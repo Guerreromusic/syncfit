@@ -61,6 +61,7 @@ Each report is a polished export-style card you can hand to a client:
 - **Brand DNA** — the brands and placement types the track fits, with logos.
 - **Worldwide influence map** — a real d3-geo world map showing where the track resonates and why.
 - **Audience demographics** — age distribution bars, appeal points, cultural/faith resonance (AI-estimated, anchored on Musixmatch language/genre).
+- **Market spend by age** — per-capita ad-spend index and resonance across age bands (18–24 … 55+), the primary demo, total addressable market, and best verticals (OpenRouter).
 - **Credits** — writers, producers, and label (MusicBrainz, keyless).
 - **Streaming & popularity** signals (Songstats / Spotify).
 - An **Ask AI** box to interrogate the result in plain language.
@@ -96,12 +97,23 @@ The player is **draggable**, never autoplays, and pauses on navigation.
 
 ---
 
+## Live Audience (public analytics)
+
+The Dashboard carries a real-time, public visitor board — anonymous, no personal data stored:
+
+- **Online now / Today / Avg session** — live counts and average time on the platform.
+- Every visitor is rendered as a **cartoon sound puzzle piece** with a generated **musical name** (e.g. "Synced Bassline"), their **city + country** (from IP geo), current page, and time online.
+- **24-hour activity** bar chart, a **most-visited pages** chart, and a running **session log** table.
+- Session time is bounded to the real first-seen→last-seen span, and internal/removed routes are filtered out. Updates every 30 s.
+
+---
+
 ## The product, section by section
 
 | Section | What it does |
 |---|---|
 | **Research** | LLM-style console — type, speak, link, or attach a brief |
-| **Dashboard** | Trending music worldwide, your stats, recent reports |
+| **Dashboard** | Trending music worldwide, your stats, recent reports, and the live public audience board |
 | **Starred** | Playlist-style view of starred tracks — play or send back to score |
 | **Score Reports** | Every saved evaluation, searchable, with archive + share |
 | **Projects** | Pitch a single track or bundle several into a swipeable, shareable multi-track pitch project |
@@ -226,6 +238,7 @@ SyncFit/
 │       ├── demographics/          # AI audience analytics (OpenRouter + Musixmatch)
 │       ├── geo-influence/         # Worldwide influence map (OpenRouter)
 │       ├── lyrics · brand-dna · credits
+│       ├── analytics/session/      # Live Audience visitor tracking (public)
 │       ├── preview/ · preview/audio/   # Deezer/iTunes 30s proxy
 │       ├── spotify/{login,callback,token,logout}  # Full-track OAuth + SDK
 │       ├── tts                    # ElevenLabs read-aloud TTS
@@ -238,6 +251,9 @@ SyncFit/
 │   ├── GenerateBannerButton.tsx   # One-click Higgsfield banner generation
 │   ├── GeoInfluenceCard.tsx       # d3-geo world influence map
 │   ├── DemographicsCard.tsx       # Age bands + faith resonance + appeal
+│   ├── MarketSpendCard.tsx        # Per-capita ad-spend index by age band
+│   ├── LiveAudienceSection.tsx    # Dashboard public visitor board
+│   ├── AnalyticsTracker.tsx       # Anonymous page/session heartbeat
 │   ├── ReadAloud.tsx              # ElevenLabs TTS read-aloud player
 │   ├── Sidebar.tsx                # Desktop nav (with research-pulse badge)
 │   ├── Topbar.tsx                 # Mobile nav (with research-pulse badge)
