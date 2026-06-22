@@ -64,8 +64,31 @@ function fmtDate(iso: string): string {
   }
 }
 
-function fmtLocation(country: string, city: string): string {
+// Map a 2-letter ISO country code (e.g. "CO") to its full name ("Colombia").
+// Uses the platform's built-in Intl data; falls back to the raw code.
+let regionNames: Intl.DisplayNames | null = null;
+try {
+  regionNames = new Intl.DisplayNames(["en"], { type: "region" });
+} catch {
+  regionNames = null;
+}
+
+function countryName(country: string): string {
   const c = country?.trim();
+  if (!c || c === "Unknown") return c;
+  // Only ISO 3166-1 alpha-2 codes need expanding; anything longer is already a name.
+  if (c.length === 2 && regionNames) {
+    try {
+      return regionNames.of(c.toUpperCase()) ?? c;
+    } catch {
+      return c;
+    }
+  }
+  return c;
+}
+
+function fmtLocation(country: string, city: string): string {
+  const c = countryName(country);
   const ci = city?.trim();
   if (ci && ci !== "Unknown" && c && c !== "Unknown") return `${ci}, ${c}`;
   if (c && c !== "Unknown") return c;
