@@ -153,8 +153,25 @@ export function LyricTranslationCard({
     );
   }
 
-  // No lyric context available (demo/manual track, or none on this plan) → hide.
-  if (!data?.available || !data.snippet) return null;
+  // No lyric context for this track (none on the current Musixmatch plan, or a
+  // demo/manual track without lyrics) → still SHOW the card with a clear note,
+  // so the section is always present rather than silently disappearing.
+  if (!data?.available || !data.snippet) {
+    return (
+      <div className="sf-card sf-card-pad">
+        <div className="mb-2 flex flex-wrap items-center gap-2">
+          <WaveIcon className="h-5 w-5 text-purple-300" aria-hidden />
+          <h3 className="text-sm font-semibold text-white">Lyric &amp; Translation</h3>
+        </div>
+        <p className="text-sm leading-relaxed text-soft">
+          No lyric context is available for this track. SyncFit reads only a
+          short, real-time lyric snippet from Musixmatch — never full lyrics —
+          and this track has none on the current Musixmatch plan. Scoring and the
+          rest of the report still use the track&apos;s language, genre, and mood.
+        </p>
+      </div>
+    );
+  }
 
   const keywords = data.keywords ?? [];
   const matches = (data.matches ?? []).filter((m) => m.phrase);
