@@ -8,6 +8,7 @@ import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import { list, put, del } from "@vercel/blob";
+import { isDbConfigured, kvGet, kvSet, KV } from "./db";
 import type { AnalyticsSession, AnalyticsStore } from "./analytics-shared";
 import {
   generateMusicalName,
@@ -125,6 +126,13 @@ async function fileWriteAnalytics(store: AnalyticsStore): Promise<void> {
 let blobUnhealthy = false;
 
 export async function readAnalytics(): Promise<AnalyticsStore> {
+  if (isDbConfigured()) {
+    try {
+      return await kvGet<AnalyticsStore>(KV.analytics, { sessions: [] });
+    } catch {
+      return fileReadAnalytics();
+    }
+  }
   if (USE_BLOB && !blobUnhealthy) {
     try {
       return await blobReadAnalytics();
@@ -136,6 +144,10 @@ export async function readAnalytics(): Promise<AnalyticsStore> {
 }
 
 async function writeAnalytics(store: AnalyticsStore): Promise<void> {
+  if (isDbConfigured()) {
+    await kvSet(KV.analytics, store);
+    return;
+  }
   if (USE_BLOB && !blobUnhealthy) {
     try {
       await blobWriteAnalytics(store);

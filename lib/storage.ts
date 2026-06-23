@@ -18,6 +18,7 @@ import os from "os";
 import path from "path";
 import { randomBytes } from "crypto";
 import { list, put, del } from "@vercel/blob";
+import { isDbConfigured, kvGet, kvSet, KV } from "./db";
 import type { AnalyzeResult, Brief, PitchProject, SavedReport } from "./types";
 
 // -----------------------------------------------------------------------------
@@ -113,8 +114,16 @@ async function fileWriteAll(reports: SavedReport[]): Promise<void> {
 let blobUnhealthy = false;
 
 // Resilient by design: any error yields an empty list / silent write so listing
-// or saving reports never 500s a page.
+// or saving reports never 500s a page. Backend priority: Supabase (durable,
+// shared) → Vercel Blob (legacy) → local file (dev).
 async function readAll(): Promise<SavedReport[]> {
+  if (isDbConfigured()) {
+    try {
+      return await kvGet<SavedReport[]>(KV.reports, []);
+    } catch {
+      return fileReadAll();
+    }
+  }
   if (USE_BLOB && !blobUnhealthy) {
     try {
       return await blobReadAll();
@@ -126,6 +135,10 @@ async function readAll(): Promise<SavedReport[]> {
 }
 
 async function writeAll(reports: SavedReport[]): Promise<void> {
+  if (isDbConfigured()) {
+    await kvSet(KV.reports, reports);
+    return;
+  }
   if (USE_BLOB && !blobUnhealthy) {
     try {
       await blobWriteAll(reports);
@@ -197,6 +210,13 @@ async function blobWriteAllProjects(projects: PitchProject[]): Promise<void> {
 }
 
 async function readAllProjects(): Promise<PitchProject[]> {
+  if (isDbConfigured()) {
+    try {
+      return await kvGet<PitchProject[]>(KV.projects, []);
+    } catch {
+      return fileReadAllProjects();
+    }
+  }
   if (USE_BLOB && !blobUnhealthy) {
     try {
       return await blobReadAllProjects();
@@ -208,6 +228,10 @@ async function readAllProjects(): Promise<PitchProject[]> {
 }
 
 async function writeAllProjects(projects: PitchProject[]): Promise<void> {
+  if (isDbConfigured()) {
+    await kvSet(KV.projects, projects);
+    return;
+  }
   if (USE_BLOB && !blobUnhealthy) {
     try {
       await blobWriteAllProjects(projects);
