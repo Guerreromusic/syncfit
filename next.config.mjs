@@ -34,8 +34,8 @@ const securityHeaders = [
       "style-src 'self' 'unsafe-inline'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "connect-src 'self' https://api.musixmatch.com https://openrouter.ai https://api.songstats.com https://musicbrainz.org",
-      // Allow the embedded Spotify 30s preview player.
-      "frame-src 'self' https://open.spotify.com",
+      // Allow the embedded Spotify 30s preview player + the YouTube demo video.
+      "frame-src 'self' https://open.spotify.com https://www.youtube-nocookie.com",
       "form-action 'self'",
     ].join("; "),
   },

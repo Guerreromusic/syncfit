@@ -120,6 +120,34 @@ export default function InfoPage() {
         </p>
       </header>
 
+      {/* Video demo */}
+      <section>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-white">Watch the demo</h2>
+          <a
+            href="https://youtu.be/UJAzKu2x71w"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-lime-300 transition hover:text-lime-200"
+          >
+            Open on YouTube →
+          </a>
+        </div>
+        <div className="sf-card overflow-hidden">
+          <div className="aspect-video w-full">
+            <iframe
+              src="https://www.youtube-nocookie.com/embed/UJAzKu2x71w"
+              title="SyncFit by Synclat — video demo"
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              allowFullScreen
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </section>
+
       {/* 3 steps */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         {STEPS.map((s) => (
