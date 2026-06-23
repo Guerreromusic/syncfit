@@ -17,6 +17,7 @@ import { SCORE_MODEL } from "@/lib/scoring";
 import { scoreColor } from "@/lib/scoreColor";
 import { RESEARCH_SEED_KEY, SELECTED_TRACK_KEY } from "@/lib/keys";
 import { setResearching } from "@/lib/research-state";
+import { cacheReport, reportFromResult } from "@/lib/reportCache";
 import type { ScoreBreakdown } from "@/lib/types";
 import type {
   AnalyzeResult,
@@ -266,6 +267,13 @@ export function ResearchChat() {
           const result = data.result as AnalyzeResult;
           ctxRef.current = contextFrom(result, brief.brief);
           qaRef.current = [];
+          // Cache the report client-side so "Open full report" works even if the
+          // server store is offline / a different serverless instance serves it.
+          if (data.savedId) {
+            cacheReport(
+              reportFromResult(data.savedId, brief, result, new Date().toISOString()),
+            );
+          }
           replace(thinkingId, {
             role: "assistant",
             kind: "single",
